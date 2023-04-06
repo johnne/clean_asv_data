@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=67.0", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clean_asv_data"
+version = "0.0.1"
+authors = [
+  { name="John Sundh", email="john.sundh@nbis.se" },
+]
+description = "Cleans up ASV clustering results"
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "tqdm",
+    "biopython",
+    "pandas"
+]
+
+#[tool.setuptools]
+#package-dir = {"" = "src"}
+#packages = ["clean_asv_data"]
+
+[project.urls]
+"Homepage" = "https://github.com/johnne/clean_asv_data"
+"Bug Tracker" = "https://github.com/johnne/clean_asv_data/issues"
+
+[project.scripts]
+clean-asv-data = "clean_asv_data.__main__:main_cli"
+generate-statsfile = "clean_asv_data.stats:main_cli"
