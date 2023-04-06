@@ -33,3 +33,4 @@ dependencies = [
 [project.scripts]
 clean-asv-data = "clean_asv_data.__main__:main_cli"
 generate-statsfile = "clean_asv_data.stats:main_cli"
+rename-samples = "clean_asv_data.rename_samples:main_cli"
