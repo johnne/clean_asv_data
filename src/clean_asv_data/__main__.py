@@ -37,8 +37,9 @@ def read_counts(f, blanks, chunksize=10000, nrows=0):
             asv_blank_count = pd.DataFrame(
                 blank_counts.gt(0).sum(axis=1), columns=["in_n_blanks"]
             )
-            asv_blank_count["in_percent_blanks"] = asv_blank_count.div(
-                len(blanks)) * 100
+            asv_blank_count["in_percent_blanks"] = (
+                asv_blank_count.div(len(blanks)) * 100
+            )
         # calculate ASV sum (remove blanks)
         asv_sum = pd.DataFrame(df.drop(blanks, axis=1).sum(axis=1), columns=["ASV_sum"])
         # calculate ASV max
@@ -118,11 +119,8 @@ def clean_by_blanks(dataframe, blanks, mode="asv", max_blank_occurrence=5):
         to_remove = list(df.loc[df["cluster"].isin(list(to_remove_cl))].index)
     df.drop(to_remove, inplace=True)
     after = df.shape[0]
-    sys.stderr.write(
-        f"{before - after} ASVs removed, {df.shape[0]} ASVs remaining\n"
-    )
+    sys.stderr.write(f"{before - after} ASVs removed, {df.shape[0]} ASVs remaining\n")
     return df
-
 
 
 def main_cli():
@@ -141,14 +139,13 @@ def main_cli():
         "--taxonomy",
         type=str,
         help="Taxonomy file for ASVs. Should also "
-             "include a"
-             "column with cluster designation.",
+        "include a"
+        "column with cluster designation.",
     )
     io_group.add_argument(
         "--blanks", type=str, help="File with samples that are 'blanks'"
     )
-    io_group.add_argument("--output", type=str,
-                          help="Output file with cleaned results")
+    io_group.add_argument("--output", type=str, help="Output file with cleaned results")
     params_group = parser.add_argument_group("params")
     params_group.add_argument(
         "--clean_rank",
@@ -161,9 +158,9 @@ def main_cli():
         type=int,
         default=5,
         help="Remove ASVs occurring in clusters where at "
-             "least one member is present in "
-             "<max_blank_occurrence>%% of blank samples. "
-             "(default 5)",
+        "least one member is present in "
+        "<max_blank_occurrence>%% of blank samples. "
+        "(default 5)",
     )
     params_group.add_argument(
         "--blank_removal_mode",
@@ -171,20 +168,20 @@ def main_cli():
         choices=["cluster", "asv"],
         default="asv",
         help="How to remove sequences based on "
-             "occurrence in blanks. If 'asv' ("
-             "default) remove "
-             "only ASVs that occur in more than "
-             "<max_blank_occurrence>%% of blanks. If "
-             "'cluster', remove ASVs in clusters where "
-             "one or more ASVs is above the "
-             "<max_blank_occurrence> threshold",
+        "occurrence in blanks. If 'asv' ("
+        "default) remove "
+        "only ASVs that occur in more than "
+        "<max_blank_occurrence>%% of blanks. If "
+        "'cluster', remove ASVs in clusters where "
+        "one or more ASVs is above the "
+        "<max_blank_occurrence> threshold",
     )
     params_group.add_argument(
         "--min_clust_count",
         type=int,
         default=3,
         help="Remove clusters with < <min_clust_count> "
-             "summed across samples (default 3)",
+        "summed across samples (default 3)",
     )
     debug_group = parser.add_argument_group("debug")
     debug_group.add_argument(
