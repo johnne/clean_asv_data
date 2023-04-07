@@ -35,6 +35,37 @@ after this command.
 
 ### rename-samples
 
+The `rename-samples` script allows you to rename sample names in a 
+tab-separated file where each sample is a column. It uses regular 
+expressions defined with the `--regex` argument. Any number of regular 
+expressions can be supplied, in the format `<pattern><split><repl>` where 
+`<pattern>` is the string pattern to search for, `<repl>` is the string to 
+replace the pattern with and `<split>` is a string used to separate the two 
+former.
+
+Example:
+
+With a file `counts.tsv´ with sample names in columns like so:
+
+```
+        FL001_L1001     FL001_neg       SOIL_1001
+ASV1    ...
+```
+
+To rename all samples starting with `FL\d+_L` ('FL' followed by 1 or more 
+digits (0-9), and the '_L' string) and keep only the `L`:
+
+```bash
+rename-samples --regex 'FL\d+_L,L' --regex-split ',' counts.tsv > counts.renamed.tsv
+```
+
+Result:
+```
+        L1001   FL001_neg       SOIL_1001
+ASV 
+```
+
+All arguments:
 ```bash
 usage: rename-samples [-h] [--regex REGEX [REGEX ...]] [--regex-split REGEX_SPLIT] [--chunksize CHUNKSIZE] input
 
@@ -64,6 +95,7 @@ clean-asv-data --counts asv_counts.tsv --taxonomy asv_taxonomy.tsv
 --clean_rank Family > asv_taxonomy.cleaned.tsv
 ```
 
+All arguments:
 ```bash
 usage: 
         This script cleans clustering results by removing ASVs if:
@@ -106,6 +138,7 @@ debug:
 The `generate-statsfile` script calculates total sum and occurrence of ASVs 
 using a countsfile as input.
 
+All arguments:
 ```bash
 usage: generate-statsfile [-h] countsfile
 
@@ -121,6 +154,7 @@ options:
 The `count-clusters` script sums read counts for each ASV cluster and writes 
 to standard out.
 
+All arguments:
 ```bash
 usage: count-clusters [-h] [--clust_column CLUST_COLUMN] [--chunksize CHUNKSIZE] countsfile clustfile
 
