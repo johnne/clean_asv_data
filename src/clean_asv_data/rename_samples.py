@@ -6,6 +6,7 @@ import re
 from argparse import ArgumentParser
 import tqdm
 import sys
+from clean_asv_data.__main__ import generate_reader
 
 
 def generate_subs(regex, regex_split):
@@ -14,23 +15,6 @@ def generate_subs(regex, regex_split):
         pattern, repl = r.split(regex_split)
         subs.append((pattern, repl))
     return subs
-
-
-def generate_reader(f, chunksize, nrows):
-    """
-    Sets up a reader with pandas. Handles both chunksize>=1 and chunksize=None
-
-    :param f: Input file
-    :param chunksize: Number of rows to read per chunk
-    :param nrows: Number of total rows to read
-    :return:
-    """
-    r = pd.read_csv(
-        f, sep="\t", index_col=0, header=0, nrows=nrows, chunksize=chunksize
-    )
-    if chunksize is not None:
-        return r
-    return [r]
 
 
 def read_and_rename(f, regex, regex_split, chunksize=None, nrows=None):
