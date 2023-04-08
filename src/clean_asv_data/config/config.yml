@@ -1,0 +1,8 @@
+nrows: 0
+chunksize: 10000
+min_clust_count: 3
+blank_removal_mode: "asv"
+max_blank_occurrence: 5
+clean_rank: "Family"
+regex-split: ","
+clust_column: "cluster"

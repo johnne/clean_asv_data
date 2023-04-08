@@ -6,7 +6,7 @@ import re
 from argparse import ArgumentParser
 import tqdm
 import sys
-from clean_asv_data.__main__ import generate_reader
+from clean_asv_data.__main__ import generate_reader, read_config
 
 
 def generate_subs(regex, regex_split):
@@ -18,6 +18,16 @@ def generate_subs(regex, regex_split):
 
 
 def read_and_rename(f, regex, regex_split, chunksize=None, nrows=None):
+    """
+    Reads a file and renames the sample names in columns
+
+    :param f: input file
+    :param regex: list of regular expressions to use to rename the samples
+    :param regex_split: character used to split the regex into pattern and replace
+    :param chunksize: number of rows to read from the input file at a time
+    :param nrows: number of total rows to read from the file
+    :return:
+    """
     subs = generate_subs(regex, regex_split)
     reader = generate_reader(f, chunksize, nrows)
     with sys.stdout as fhout:
@@ -45,6 +55,12 @@ def main_cli():
         help="Tab-separated input file with sample names in " "columns",
     )
     parser.add_argument(
+        "--configfile",
+        type=str,
+        default="config.yml",
+        help="Path to a yaml-format configuration file. Can be used to set arguments."
+    )
+    parser.add_argument(
         "--regex",
         nargs="+",
         help="One or more regular expressions to use to "
@@ -53,7 +69,6 @@ def main_cli():
     parser.add_argument(
         "--regex-split",
         type=str,
-        default=",",
         help="Character used to split the regular expressions "
         "into"
         "<pattern> and <repl>. For example with --regex "

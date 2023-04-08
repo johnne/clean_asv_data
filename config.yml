@@ -1,0 +1,57 @@
+# File with counts of ASVs (rows) in samples (columns), example:
+#ASV_ID  FL005_pos       FL018_neg       FL018_pos       FL018_Neg_PCR   FL021_neg       FL021_pos       FL021_Neg_PCR
+#089ba876a0777bb7286689befba13374        0       0       213     0       0       39      0
+#3210001e96797aef10bc69ec22da291e        0       0       51238   0       0       8085    0
+countsfile: "data/asv_counts.bz2"
+
+# File with ASV taxonomy and cluster designations, example:
+#ASV     cluster median  Kingdom Phylum  Class   Order   Family  Genus   Species BOLD_bin        representative
+#089ba876a0777bb7286689befba13374        Blattidae_cluster1      0.0111457281372255      Animalia        Arthropoda      Insecta Blattodea       Blattidae       Shelfordella    Shelfordella lateralis       BOLAAG9959      1
+#6197512540a2b395feef15313b9c9fff        Blattidae_cluster1      0.000270822522055       Animalia        Arthropoda      Insecta Blattodea       Blattidae       Shelfordella    Shelfordella lateralis       BOLAAG9959      0
+clustfile: "data/asv_reps.taxonomy.tsv"
+
+# File listing samples to be treated as 'blanks', example:
+#L100472
+#L100451
+#L100503
+blanksfile: "data/blanks.txt"
+
+# The chunksize parameter specifies how many lines to read from the
+# countsfile at a time. This can be useful if the countsfile is very large.
+# To read the entire file into memory you can set this value to 0
+chunksize: 10000
+
+# script: clean-asv-data
+# min_clust_count specifies the minimum sum that clusters can have across
+# samples. This is used in the clean-asv-data script to remove low abundance
+# clusters.
+min_clust_count: 3
+
+# script: clean-asv-data
+# max_blank_occurrence specifies the maximum percentage of blanks in which asvs
+# or clusters (see 'blank_removal_mode' for behaviour) can occur
+max_blank_occurrence: 5
+
+# script: clean-asv-data
+# blank_removal_mode specifies how to handle occurrences in blanks. If
+# 'cluster', then all ASVs in clusters that occur in more than
+#  <max_blank_occurrence> are removed. If 'asv', only ASVs occurring in more
+# than <max_blank_occurrence> are removed.
+blank_removal_mode: "asv"
+
+# script: clean-asv-data
+# clean_rank specifies the taxonomic rank name at which to clean taxonomy
+# for example, if 'Family' is given then all ASVs that begin with 'unclassified'
+# or end in _X (any number of 'X') in the Family column are removed when using
+# clean-asv-data
+clean_rank: "Family"
+
+# script: rename-samples
+# The regex-split character is used to split the regular expressions
+# into "<pattern> and <repl>. For example with --regex "'FL\d+_L,L the
+#  --regex-split ',' will replace "'FL\d+_L' with 'L'.
+regex-split: ","
+
+# script: count-clusters, clean-asv-data
+# column name for cluster designation
+clust_column: "cluster"

@@ -22,10 +22,6 @@ dependencies = [
     "pandas"
 ]
 
-#[tool.setuptools]
-#package-dir = {"" = "src"}
-#packages = ["clean_asv_data"]
-
 [project.urls]
 "Homepage" = "https://github.com/johnne/clean_asv_data"
 "Bug Tracker" = "https://github.com/johnne/clean_asv_data/issues"

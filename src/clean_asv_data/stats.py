@@ -4,6 +4,7 @@ import pandas as pd
 import tqdm
 from argparse import ArgumentParser
 import sys
+from clean_asv_data.__main__ import read_config
 
 
 def read_counts(f, chunksize=10000, nrows=None):
@@ -24,6 +25,7 @@ def read_counts(f, chunksize=10000, nrows=None):
 
 
 def main(args):
+    args = read_config(args.configfile, args)
     dataframe = read_counts(args.countsfile)
     sys.stderr.write(f"Writing stats for {dataframe.shape[0]} ASVs to stdout\n")
     with sys.stdout as fhout:
@@ -33,9 +35,15 @@ def main(args):
 def main_cli():
     parser = ArgumentParser()
     parser.add_argument(
-        "countsfile",
+        "--countsfile",
         type=str,
         help="ASV counts file. Tab-separated, samples in columns, ASVs in rows",
+    )
+    parser.add_argument(
+        "--configfile",
+        type=str,
+        default="config.yml",
+        help="Path to a yaml-format configuration file. Can be used to set arguments."
     )
     args = parser.parse_args()
     main(args)

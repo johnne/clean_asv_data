@@ -1,4 +1,55 @@
 import pandas as pd
+import yaml
+import os
+import importlib.resources
+
+
+class objectview(object):
+    def __init__(self, d):
+        self.__dict__ = d
+
+
+def update_args(args, config):
+    """
+    Overrides arguments set in configfile with arguments from commandline
+
+    :param args:
+    :param config:
+    :return:
+    """
+    for key, value in args.__dict__.items():
+        if value is not None:
+            config[key] = value
+    return config
+
+
+def load_configfile(configfile):
+    with open(configfile, 'r') as fhin:
+        return yaml.safe_load(fhin)
+
+
+def read_config(configfile, args):
+    """
+    Stores parameters from a yaml configfile in a dictionary
+
+    Any arg given on commandline overrides the config settings. The dictionary
+    is turned back into an object with attributes just like the args.
+
+    :param configfile: Path to a yaml config file
+    :return: config dict
+    """
+    # Read default config from package
+    default_configfile = str(importlib.resources.files("clean_asv_data") / "config/config.yml")
+    config = load_configfile(default_configfile)
+    if os.path.exists(configfile):
+        cl_config = load_configfile(configfile)
+    else:
+        cl_config = {}
+    # Update default config with config from cmd
+    config.update(cl_config)
+    config = update_args(args, config)
+    args = objectview(config)
+    return args
 
 
 def read_clustfile(f, sep="\t"):
