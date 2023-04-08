@@ -63,7 +63,6 @@ def main_cli():
     parser.add_argument(
         "--clust_column",
         type=str,
-        default="cluster",
         help="Name of cluster column. Defaults to 'cluster'",
     )
     parser.add_argument(

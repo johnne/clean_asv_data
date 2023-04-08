@@ -53,7 +53,6 @@ def main_cli():
     parser.add_argument(
         "--regex-split",
         type=str,
-        default=",",
         help="Character used to split the regular expressions "
         "into"
         "<pattern> and <repl>. For example with --regex "

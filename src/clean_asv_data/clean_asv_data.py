@@ -4,6 +4,8 @@ from argparse import ArgumentParser
 import pandas as pd
 import sys
 import tqdm
+from clean_asv_data.__main__ import read_config, update_args
+import importlib.resources
 
 
 def read_taxonomy(f):
@@ -123,91 +125,16 @@ def clean_by_blanks(dataframe, blanks, mode="asv", max_blank_occurrence=5):
     return df
 
 
-def main_cli():
-    parser = ArgumentParser(
-        """
-        This script cleans clustering results by removing ASVs if:
-        - unassigned or ambiguous taxonomic assignments (e.g.  
-        'unclassified' or '_X' in rank labels) 
-        - if belonging to clusters present in > max_blank_occurrence% of blanks
-        - if belonging to clusters with < min_clust_count total reads
-        """
-    )
-    io_group = parser.add_argument_group("input/output")
-    io_group.add_argument("--counts", type=str, help="Counts file of ASVs")
-    io_group.add_argument(
-        "--taxonomy",
-        type=str,
-        help="Taxonomy file for ASVs. Should also "
-        "include a"
-        "column with cluster designation.",
-    )
-    io_group.add_argument(
-        "--blanks", type=str, help="File with samples that are 'blanks'"
-    )
-    io_group.add_argument("--output", type=str, help="Output file with cleaned results")
-    params_group = parser.add_argument_group("params")
-    params_group.add_argument(
-        "--clean_rank",
-        type=str,
-        default="Family",
-        help="Remove ASVs unassigned at this taxonomic " "rank (default Family)",
-    )
-    params_group.add_argument(
-        "--max_blank_occurrence",
-        type=int,
-        default=5,
-        help="Remove ASVs occurring in clusters where at "
-        "least one member is present in "
-        "<max_blank_occurrence>%% of blank samples. "
-        "(default 5)",
-    )
-    params_group.add_argument(
-        "--blank_removal_mode",
-        type=str,
-        choices=["cluster", "asv"],
-        default="asv",
-        help="How to remove sequences based on "
-        "occurrence in blanks. If 'asv' ("
-        "default) remove "
-        "only ASVs that occur in more than "
-        "<max_blank_occurrence>%% of blanks. If "
-        "'cluster', remove ASVs in clusters where "
-        "one or more ASVs is above the "
-        "<max_blank_occurrence> threshold",
-    )
-    params_group.add_argument(
-        "--min_clust_count",
-        type=int,
-        default=3,
-        help="Remove clusters with < <min_clust_count> "
-        "summed across samples (default 3)",
-    )
-    debug_group = parser.add_argument_group("debug")
-    debug_group.add_argument(
-        "--chunksize",
-        type=int,
-        default=10000,
-        help="Size of chunks (in lines) to read from " "countsfile",
-    )
-    debug_group.add_argument(
-        "--nrows",
-        type=int,
-        default=0,
-        help="Rows to read from countsfile (for testing purposes only)",
-    )
-    args = parser.parse_args()
-    main(args)
-
-
 def main(args):
+    # Read config
+    args = read_config(args.configfile, args)
     # Read taxonomy + clusters
-    asv_taxa = read_taxonomy(args.taxonomy)
+    asv_taxa = read_taxonomy(args.clustfile)
     # Read blanks
-    blanks = read_blanks(args.blanks) if args.blanks else []
+    blanks = read_blanks(args.blanksfile) if args.blanksfile else []
     # Read counts
     counts = read_counts(
-        f=args.counts, blanks=blanks, chunksize=args.chunksize, nrows=args.nrows
+        f=args.countsfile, blanks=blanks, chunksize=args.chunksize, nrows=args.nrows
     )
     # Clean by taxonomy
     asv_taxa_cleaned = clean_by_taxonomy(dataframe=asv_taxa, rank=args.clean_rank)
@@ -216,10 +143,10 @@ def main(args):
         asv_taxa_cleaned, counts, left_index=True, right_index=True
     )
     # Clean by blanks
-    if args.blanks:
+    if args.blanksfile:
         asv_taxa_cleaned = clean_by_blanks(
             dataframe=asv_taxa_cleaned,
-            blanks=args.blanks,
+            blanks=args.blanksfile,
             mode=args.blank_removal_mode,
             max_blank_occurrence=args.max_blank_occurrence,
         )
@@ -234,3 +161,77 @@ def main(args):
         )
         asv_taxa.index.name = "ASV"
         asv_taxa_cleaned.to_csv(fhout, sep="\t")
+
+
+def main_cli():
+    parser = ArgumentParser(
+        """
+        This script cleans clustering results by removing ASVs if:
+        - unassigned or ambiguous taxonomic assignments (e.g.  
+        'unclassified' or '_X' in rank labels) 
+        - if belonging to clusters present in > max_blank_occurrence% of blanks
+        - if belonging to clusters with < min_clust_count total reads
+        """
+    )
+    io_group = parser.add_argument_group("input/output")
+    io_group.add_argument("--countsfile", type=str, help="Counts file of ASVs")
+    io_group.add_argument(
+        "--clustfile",
+        type=str,
+        help="Taxonomy file for ASVs. Should also "
+        "include a"
+        "column with cluster designation.",
+    )
+    io_group.add_argument(
+        "--blanksfile", type=str, help="File with samples that are 'blanks'"
+    )
+    io_group.add_argument("--output", type=str, help="Output file with cleaned results")
+    params_group = parser.add_argument_group("params")
+    params_group.add_argument("--configfile", type=str, default="config.yml",
+                              help="Path to a yaml-format configuration file. Can be used to set arguments.")
+    params_group.add_argument(
+        "--clean_rank",
+        type=str,
+        help="Remove ASVs unassigned at this taxonomic " "rank (default Family)",
+    )
+    params_group.add_argument(
+        "--max_blank_occurrence",
+        type=int,
+        help="Remove ASVs occurring in clusters where at "
+        "least one member is present in "
+        "<max_blank_occurrence>%% of blank samples. "
+        "(default 5)",
+    )
+    params_group.add_argument(
+        "--blank_removal_mode",
+        type=str,
+        choices=["cluster", "asv"],
+        help="How to remove sequences based on "
+        "occurrence in blanks. If 'asv' ("
+        "default) remove "
+        "only ASVs that occur in more than "
+        "<max_blank_occurrence>%% of blanks. If "
+        "'cluster', remove ASVs in clusters where "
+        "one or more ASVs is above the "
+        "<max_blank_occurrence> threshold",
+    )
+    params_group.add_argument(
+        "--min_clust_count",
+        type=int,
+        help="Remove clusters with < <min_clust_count> "
+        "summed across samples (default 3)",
+    )
+    debug_group = parser.add_argument_group("debug")
+    debug_group.add_argument(
+        "--chunksize",
+        type=int,
+        help="Size of chunks (in lines) to read from " "countsfile",
+    )
+    debug_group.add_argument(
+        "--nrows",
+        type=int,
+        help="Rows to read from countsfile (for testing purposes only)",
+    )
+    args = parser.parse_args()
+    main(args)
+
