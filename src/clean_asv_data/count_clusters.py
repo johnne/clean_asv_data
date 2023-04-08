@@ -4,7 +4,7 @@ import sys
 from argparse import ArgumentParser
 import pandas as pd
 import tqdm
-from clean_asv_data.__main__ import generate_reader, read_clustfile
+from clean_asv_data.__main__ import generate_reader, read_clustfile, read_config
 
 
 def count_clusters(clustdf, countsfile, clust_column, chunksize=None, nrows=None):
@@ -36,6 +36,8 @@ def count_clusters(clustdf, countsfile, clust_column, chunksize=None, nrows=None
 
 
 def main(args):
+    # Read config
+    args = read_config(args.configfile, args)
     clustdf = read_clustfile(args.clustfile)
     written = count_clusters(
         clustdf,
@@ -50,15 +52,21 @@ def main(args):
 def main_cli():
     parser = ArgumentParser()
     parser.add_argument(
-        "countsfile",
+        "--countsfile",
         type=str,
         help="Tab-separated file with counts of ASVs (rows) in samples (columns)",
     )
     parser.add_argument(
-        "clustfile",
+        "--clustfile",
         type=str,
         help="Tab-separated file with ASV ids in first column and a column specifying "
         "the cluster it belongs to",
+    )
+    parser.add_argument(
+        "--configfile",
+        type=str,
+        default="config.yml",
+        help="Path to a yaml-format configuration file. Can be used to set arguments."
     )
     parser.add_argument(
         "--clust_column",
