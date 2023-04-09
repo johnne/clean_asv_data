@@ -24,7 +24,7 @@ def update_args(args, config):
 
 
 def load_configfile(configfile):
-    with open(configfile, 'r') as fhin:
+    with open(configfile, "r") as fhin:
         return yaml.safe_load(fhin)
 
 
@@ -39,7 +39,9 @@ def read_config(configfile, args):
     :return: config dict
     """
     # Read default config from package
-    default_configfile = str(importlib.resources.files("clean_asv_data") / "config/config.yml")
+    default_configfile = str(
+        importlib.resources.files("clean_asv_data") / "config/config.yml"
+    )
     config = load_configfile(default_configfile)
     if os.path.exists(configfile):
         cl_config = load_configfile(configfile)

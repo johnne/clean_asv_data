@@ -187,8 +187,12 @@ def main_cli():
     )
     io_group.add_argument("--output", type=str, help="Output file with cleaned results")
     params_group = parser.add_argument_group("params")
-    params_group.add_argument("--configfile", type=str, default="config.yml",
-                              help="Path to a yaml-format configuration file. Can be used to set arguments.")
+    params_group.add_argument(
+        "--configfile",
+        type=str,
+        default="config.yml",
+        help="Path to a yaml-format configuration file. Can be used to set arguments.",
+    )
     params_group.add_argument(
         "--clean_rank",
         type=str,
@@ -234,4 +238,3 @@ def main_cli():
     )
     args = parser.parse_args()
     main(args)
-

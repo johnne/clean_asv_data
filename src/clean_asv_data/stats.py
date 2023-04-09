@@ -43,7 +43,7 @@ def main_cli():
         "--configfile",
         type=str,
         default="config.yml",
-        help="Path to a yaml-format configuration file. Can be used to set arguments."
+        help="Path to a yaml-format configuration file. Can be used to set arguments.",
     )
     args = parser.parse_args()
     main(args)
