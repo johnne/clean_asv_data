@@ -2,7 +2,7 @@ import argparse
 from argparse import ArgumentParser
 import pandas as pd
 from clean_asv_data.__main__ import generate_reader, read_clustfile, read_config
-from tqdm import tqdm
+import tqdm
 import sys
 
 
@@ -12,7 +12,7 @@ def find_consensus_taxonomies(
     cluster_taxonomies = {}
     cons_ranks_reversed = consensus_ranks.copy()
     cons_ranks_reversed.reverse()
-    for cluster in tqdm(
+    for cluster in tqdm.tqdm(
         clustdf[clust_column].unique(),
         desc="finding consensus taxonomies",
         unit=" clusters",
