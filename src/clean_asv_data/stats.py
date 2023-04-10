@@ -4,19 +4,17 @@ import pandas as pd
 import tqdm
 from argparse import ArgumentParser
 import sys
-from clean_asv_data.__main__ import read_config
+from clean_asv_data.__main__ import read_config, generate_reader
 
 
-def read_counts(f, chunksize=10000, nrows=None):
+def read_counts(countsfile, chunksize=None, nrows=None):
     """
     Read counts file in chunks and calculate ASV sum and ASV occurrence
     """
+    reader = generate_reader(countsfile, chunksize, nrows)
     dataframe = pd.DataFrame()
-    sys.stderr.write(f"Reading {f} in chunks of {chunksize} lines\n")
-    for df in tqdm.tqdm(
-        pd.read_csv(f, sep="\t", index_col=0, chunksize=chunksize, nrows=nrows),
-        unit=" chunks",
-    ):
+    sys.stderr.write(f"Reading {countsfile} in chunks of {chunksize} lines\n")
+    for df in tqdm.tqdm(reader, unit=" chunks"):
         asv_occ = pd.DataFrame(df.gt(0).sum(axis=1), columns=["occurrence"])
         asv_sum = pd.DataFrame(df.sum(axis=1), columns=["reads"])
         _dataframe = pd.merge(asv_sum, asv_occ, left_index=True, right_index=True)
@@ -26,7 +24,7 @@ def read_counts(f, chunksize=10000, nrows=None):
 
 def main(args):
     args = read_config(args.configfile, args)
-    dataframe = read_counts(args.countsfile)
+    dataframe = read_counts(args.countsfile, chunksize=args.chunksize, nrows=args.nrows)
     sys.stderr.write(f"Writing stats for {dataframe.shape[0]} ASVs to stdout\n")
     with sys.stdout as fhout:
         dataframe.to_csv(fhout, sep="\t")
@@ -44,6 +42,16 @@ def main_cli():
         type=str,
         default="config.yml",
         help="Path to a yaml-format configuration file. Can be used to set arguments."
+    )
+    parser.add_argument(
+        "--chunksize",
+        type=int,
+        help="Size of chunks (in lines) to read from " "countsfile",
+    )
+    parser.add_argument(
+        "--nrows",
+        type=int,
+        help=argparse.SUPPRESS,
     )
     args = parser.parse_args()
     main(args)
