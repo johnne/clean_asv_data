@@ -21,7 +21,9 @@ def sum_clusters(clustdf, countsfile, clust_column, chunksize=None, nrows=None):
     reader = generate_reader(f=countsfile, chunksize=chunksize, nrows=nrows)
     cluster_sum = pd.DataFrame()
     for df in tqdm.tqdm(reader, desc="reading counts", unit=" chunks"):
-        merged = pd.merge(clustdf.loc[:, clust_column], df, left_index=True, right_index=True)
+        merged = pd.merge(
+            clustdf.loc[:, clust_column], df, left_index=True, right_index=True
+        )
         _cluster_sum = merged.groupby(clust_column).sum(numeric_only=True)
         cluster_sum = cluster_sum.add(_cluster_sum, fill_value=0)
     return cluster_sum
@@ -41,7 +43,6 @@ def main(args):
     )
     with sys.stdout as fhout:
         cluster_sum.to_csv(fhout, sep="\t")
-
 
 
 def main_cli():

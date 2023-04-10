@@ -16,7 +16,12 @@ def read_counts(countsfile, blanks, chunksize=None, nrows=None):
     reader = generate_reader(countsfile, chunksize=chunksize, nrows=nrows)
     sys.stderr.write("####\n" f"Reading counts from {countsfile}\n")
     dataframe = pd.DataFrame()
-    for i, df in enumerate(tqdm.tqdm(reader,unit=" chunks",)):
+    for i, df in enumerate(
+        tqdm.tqdm(
+            reader,
+            unit=" chunks",
+        )
+    ):
         if i == 0:
             samples = df.shape[1]
         if len(blanks) > 0:
@@ -114,14 +119,16 @@ def clean_by_blanks(dataframe, blanks, mode="asv", max_blank_occurrence=5):
 def main(args):
     # Read config
     args = read_config(args.configfile, args)
-    print(args.nrows)
     # Read taxonomy + clusters
     asv_taxa = read_clustfile(args.clustfile)
     # Read blanks
     blanks = read_blanks(args.blanksfile) if args.blanksfile else []
     # Read counts
     counts = read_counts(
-        countsfile=args.countsfile, blanks=blanks, chunksize=args.chunksize, nrows=args.nrows
+        countsfile=args.countsfile,
+        blanks=blanks,
+        chunksize=args.chunksize,
+        nrows=args.nrows,
     )
     # Clean by taxonomy
     asv_taxa_cleaned = clean_by_taxonomy(dataframe=asv_taxa, rank=args.clean_rank)
