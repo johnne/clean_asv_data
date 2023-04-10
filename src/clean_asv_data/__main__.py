@@ -72,6 +72,8 @@ def generate_reader(f, chunksize, nrows):
     :param nrows: Number of total rows to read
     :return:
     """
+    if nrows == 0:
+        nrows = None
     r = pd.read_csv(
         f, sep="\t", index_col=0, header=0, nrows=nrows, chunksize=chunksize
     )
