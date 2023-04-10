@@ -170,3 +170,29 @@ options:
                         If countsfile is very large, specify chunksize to read it in a number of lines at a time
 ```
 
+## consensus-taxonomy
+
+All arguments:
+```
+usage: consensus-taxonomy [-h] [--countsfile COUNTSFILE] [--clustfile CLUSTFILE] [--configfile CONFIGFILE] [--ranks RANKS [RANKS ...]] [--clust_column CLUST_COLUMN]
+                          [--consensus_threshold CONSENSUS_THRESHOLD] [--consensus_ranks CONSENSUS_RANKS [CONSENSUS_RANKS ...]] [--chunksize CHUNKSIZE]
+
+options:
+  -h, --help            show this help message and exit
+  --countsfile COUNTSFILE
+                        Counts file of ASVs
+  --clustfile CLUSTFILE
+                        Taxonomy file for ASVs. Should also include a column with cluster designation.
+  --configfile CONFIGFILE
+                        Path to a yaml-format configuration file. Can be used to set arguments.
+  --ranks RANKS [RANKS ...]
+                        Ranks to include in the output.
+  --clust_column CLUST_COLUMN
+                        Name of cluster column, e.g. 'cluster'
+  --consensus_threshold CONSENSUS_THRESHOLD
+                        Threshold (in %) at which to assign taxonomy to a cluster
+  --consensus_ranks CONSENSUS_RANKS [CONSENSUS_RANKS ...]
+                        Ranks to use for calculating consensus. Must be present in the clustfile.
+  --chunksize CHUNKSIZE
+                        If countsfile is very large, specify chunksize to read it in a number of lines at a time
+```
