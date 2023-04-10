@@ -2,6 +2,7 @@ import pandas as pd
 import yaml
 import os
 import importlib.resources
+import sys
 
 
 class objectview(object):
@@ -52,6 +53,16 @@ def read_config(configfile, args):
     config = update_args(args, config)
     args = objectview(config)
     return args
+
+
+def read_blanks(f=None):
+    if f is None:
+        return []
+    sys.stderr.write("####\n" f"Reading list of blanks from {f}\n")
+    with open(f, "r") as fhin:
+        blanks = [x.rstrip() for x in fhin.readlines()]
+    sys.stderr.write(f"{len(blanks)} blanks read\n")
+    return blanks
 
 
 def read_clustfile(f, sep="\t"):

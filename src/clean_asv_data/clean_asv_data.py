@@ -65,14 +65,6 @@ def clean_by_taxonomy(dataframe, rank="Family"):
     return cleaned
 
 
-def read_blanks(f):
-    sys.stderr.write("####\n" f"Reading list of blanks from {f}\n")
-    with open(f, "r") as fhin:
-        blanks = [x.rstrip() for x in fhin.readlines()]
-    sys.stderr.write(f"{len(blanks)} blanks read\n")
-    return blanks
-
-
 def clean_by_reads(dataframe, min_clust_count=3):
     """
     Remove clusters with a sum less than <min_reads> across samples

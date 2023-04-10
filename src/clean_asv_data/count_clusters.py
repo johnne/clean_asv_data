@@ -4,10 +4,17 @@ import sys
 from argparse import ArgumentParser
 import pandas as pd
 import tqdm
-from clean_asv_data.__main__ import generate_reader, read_clustfile, read_config
+from clean_asv_data.__main__ import (
+    generate_reader,
+    read_clustfile,
+    read_config,
+    read_blanks,
+)
 
 
-def sum_clusters(clustdf, countsfile, clust_column, chunksize=None, nrows=None):
+def sum_clusters(
+    clustdf, countsfile, clust_column, blanks=None, chunksize=None, nrows=None
+):
     """
     Calculates sums of clusters in each sample
 
@@ -18,11 +25,16 @@ def sum_clusters(clustdf, countsfile, clust_column, chunksize=None, nrows=None):
     :param nrows: Number of total rows to read (development)
     :return: Dataframe with summed counts per cluster
     """
+    if blanks is None:
+        blanks = []
     reader = generate_reader(f=countsfile, chunksize=chunksize, nrows=nrows)
     cluster_sum = pd.DataFrame()
     for df in tqdm.tqdm(reader, desc="reading counts", unit=" chunks"):
         merged = pd.merge(
-            clustdf.loc[:, clust_column], df, left_index=True, right_index=True
+            clustdf.loc[:, clust_column],
+            df.drop(blanks, axis=1),
+            left_index=True,
+            right_index=True,
         )
         _cluster_sum = merged.groupby(clust_column).sum(numeric_only=True)
         cluster_sum = cluster_sum.add(_cluster_sum, fill_value=0)
@@ -34,10 +46,12 @@ def main(args):
     args = read_config(args.configfile, args)
     sys.stderr.write(f"Reading {args.clustfile}\n")
     clustdf = read_clustfile(args.clustfile)
+    blanks = read_blanks(f=args.blanksfile)
     cluster_sum = sum_clusters(
         clustdf,
         args.countsfile,
         args.clust_column,
+        blanks,
         chunksize=args.chunksize,
         nrows=args.nrows,
     )
@@ -68,6 +82,9 @@ def main_cli():
         "--clust_column",
         type=str,
         help="Name of cluster column. Defaults to 'cluster'",
+    )
+    parser.add_argument(
+        "--blanksfile", type=str, help="File with samples that are 'blanks'"
     )
     parser.add_argument(
         "--chunksize",
