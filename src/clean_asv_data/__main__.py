@@ -2,6 +2,7 @@ import pandas as pd
 import yaml
 import os
 import importlib.resources
+import sys
 
 
 class objectview(object):
@@ -24,7 +25,7 @@ def update_args(args, config):
 
 
 def load_configfile(configfile):
-    with open(configfile, 'r') as fhin:
+    with open(configfile, "r") as fhin:
         return yaml.safe_load(fhin)
 
 
@@ -39,7 +40,9 @@ def read_config(configfile, args):
     :return: config dict
     """
     # Read default config from package
-    default_configfile = str(importlib.resources.files("clean_asv_data") / "config/config.yml")
+    default_configfile = str(
+        importlib.resources.files("clean_asv_data") / "config/config.yml"
+    )
     config = load_configfile(default_configfile)
     if os.path.exists(configfile):
         cl_config = load_configfile(configfile)
@@ -50,6 +53,16 @@ def read_config(configfile, args):
     config = update_args(args, config)
     args = objectview(config)
     return args
+
+
+def read_blanks(f=None):
+    if f is None:
+        return []
+    sys.stderr.write("####\n" f"Reading list of blanks from {f}\n")
+    with open(f, "r") as fhin:
+        blanks = [x.rstrip() for x in fhin.readlines()]
+    sys.stderr.write(f"{len(blanks)} blanks read\n")
+    return blanks
 
 
 def read_clustfile(f, sep="\t"):

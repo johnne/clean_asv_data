@@ -16,7 +16,12 @@ def read_counts(countsfile, blanks, chunksize=None, nrows=None):
     reader = generate_reader(countsfile, chunksize=chunksize, nrows=nrows)
     sys.stderr.write("####\n" f"Reading counts from {countsfile}\n")
     dataframe = pd.DataFrame()
-    for i, df in enumerate(tqdm.tqdm(reader,unit=" chunks",)):
+    for i, df in enumerate(
+        tqdm.tqdm(
+            reader,
+            unit=" chunks",
+        )
+    ):
         if i == 0:
             samples = df.shape[1]
         if len(blanks) > 0:
@@ -58,14 +63,6 @@ def clean_by_taxonomy(dataframe, rank="Family"):
         f"{before - after} ASVs removed, {cleaned.shape[0]} ASVs remaining\n"
     )
     return cleaned
-
-
-def read_blanks(f):
-    sys.stderr.write("####\n" f"Reading list of blanks from {f}\n")
-    with open(f, "r") as fhin:
-        blanks = [x.rstrip() for x in fhin.readlines()]
-    sys.stderr.write(f"{len(blanks)} blanks read\n")
-    return blanks
 
 
 def clean_by_reads(dataframe, min_clust_count=3):
@@ -121,7 +118,10 @@ def main(args):
     blanks = read_blanks(args.blanksfile) if args.blanksfile else []
     # Read counts
     counts = read_counts(
-        countsfile=args.countsfile, blanks=blanks, chunksize=args.chunksize, nrows=args.nrows
+        countsfile=args.countsfile,
+        blanks=blanks,
+        chunksize=args.chunksize,
+        nrows=args.nrows,
     )
     # Clean by taxonomy
     asv_taxa_cleaned = clean_by_taxonomy(dataframe=asv_taxa, rank=args.clean_rank)
@@ -174,8 +174,12 @@ def main_cli():
     )
     io_group.add_argument("--output", type=str, help="Output file with cleaned results")
     params_group = parser.add_argument_group("params")
-    params_group.add_argument("--configfile", type=str, default="config.yml",
-                              help="Path to a yaml-format configuration file. Can be used to set arguments.")
+    params_group.add_argument(
+        "--configfile",
+        type=str,
+        default="config.yml",
+        help="Path to a yaml-format configuration file. Can be used to set arguments.",
+    )
     params_group.add_argument(
         "--clean_rank",
         type=str,
@@ -221,4 +225,3 @@ def main_cli():
     )
     args = parser.parse_args()
     main(args)
-
