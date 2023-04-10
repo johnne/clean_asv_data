@@ -1,36 +1,22 @@
 #!/usr/bin/env python
-
+import argparse
 from argparse import ArgumentParser
 import pandas as pd
 import sys
 import tqdm
-from clean_asv_data.__main__ import read_config, update_args
-import importlib.resources
+from clean_asv_data.__main__ import read_config, generate_reader, read_clustfile
 
 
-def read_taxonomy(f):
-    sys.stderr.write("####\n" f"Reading clusters and taxonomy from {f}\n")
-    asv_taxa = pd.read_csv(f, sep="\t", index_col=0)
-    sys.stderr.write(f"{asv_taxa.shape[0]} ASVs read\n")
-    return asv_taxa
-
-
-def read_counts(f, blanks, chunksize=10000, nrows=0):
+def read_counts(countsfile, blanks, chunksize=None, nrows=None):
     """
     Read the counts file in chunks, if list of blanks is given, count occurrence
     in blanks and return as a column <in_n_blanks>. Also calculate max and
     sum for each ASV.
     """
-    if nrows == 0:
-        nrows = None
-    sys.stderr.write("####\n" f"Reading counts from {f}\n")
+    reader = generate_reader(countsfile, chunksize=chunksize, nrows=nrows)
+    sys.stderr.write("####\n" f"Reading counts from {countsfile}\n")
     dataframe = pd.DataFrame()
-    for i, df in enumerate(
-        tqdm.tqdm(
-            pd.read_csv(f, sep="\t", index_col=0, chunksize=chunksize, nrows=nrows),
-            unit=" chunks",
-        )
-    ):
+    for i, df in enumerate(tqdm.tqdm(reader,unit=" chunks",)):
         if i == 0:
             samples = df.shape[1]
         if len(blanks) > 0:
@@ -128,13 +114,14 @@ def clean_by_blanks(dataframe, blanks, mode="asv", max_blank_occurrence=5):
 def main(args):
     # Read config
     args = read_config(args.configfile, args)
+    print(args.nrows)
     # Read taxonomy + clusters
-    asv_taxa = read_taxonomy(args.clustfile)
+    asv_taxa = read_clustfile(args.clustfile)
     # Read blanks
     blanks = read_blanks(args.blanksfile) if args.blanksfile else []
     # Read counts
     counts = read_counts(
-        f=args.countsfile, blanks=blanks, chunksize=args.chunksize, nrows=args.nrows
+        countsfile=args.countsfile, blanks=blanks, chunksize=args.chunksize, nrows=args.nrows
     )
     # Clean by taxonomy
     asv_taxa_cleaned = clean_by_taxonomy(dataframe=asv_taxa, rank=args.clean_rank)
@@ -230,7 +217,7 @@ def main_cli():
     debug_group.add_argument(
         "--nrows",
         type=int,
-        help="Rows to read from countsfile (for testing purposes only)",
+        help=argparse.SUPPRESS,
     )
     args = parser.parse_args()
     main(args)
