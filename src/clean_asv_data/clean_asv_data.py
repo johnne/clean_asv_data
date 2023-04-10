@@ -111,7 +111,6 @@ def clean_by_blanks(dataframe, blanks, mode="asv", max_blank_occurrence=5):
 def main(args):
     # Read config
     args = read_config(args.configfile, args)
-    print(args.nrows)
     # Read taxonomy + clusters
     asv_taxa = read_clustfile(args.clustfile)
     # Read blanks
