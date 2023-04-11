@@ -1,7 +1,7 @@
 import argparse
 from argparse import ArgumentParser
 import pandas as pd
-from clean_asv_data.__main__ import generate_reader, read_clustfile, read_config
+from clean_asv_data.__main__ import generate_reader, read_clustfile, read_config, read_blanks
 import tqdm
 import sys
 
@@ -47,19 +47,22 @@ def find_consensus_taxonomies(
     return pd.DataFrame(cluster_taxonomies).T
 
 
-def sum_asvs(countsfile, chunksize=None, nrows=None):
+def sum_asvs(countsfile, blanks=None, chunksize=None, nrows=None):
+    if blanks is None:
+        blanks = []
     reader = generate_reader(f=countsfile, chunksize=chunksize, nrows=nrows)
     asv_sum = pd.DataFrame()
     for df in tqdm.tqdm(reader, unit="chunks"):
-        _asv_sum = pd.DataFrame(df.sum(numeric_only=True, axis=1), columns=["ASV_sum"])
+        _asv_sum = pd.DataFrame(df.drop(blanks, axis=1).sum(numeric_only=True, axis=1), columns=["ASV_sum"])
         asv_sum = pd.concat([asv_sum, _asv_sum])
-    return asv_sum.sort_values(ascending=False)
+    return asv_sum.sort_values(by="ASV_sum", ascending=False)
 
 
 def main(args):
     args = read_config(args.configfile, args)
+    blanks = read_blanks(args.blanksfile)
     asv_sum = sum_asvs(
-        countsfile=args.countsfile, chunksize=args.chunksize, nrows=args.nrows
+        countsfile=args.countsfile, blanks=blanks, chunksize=args.chunksize, nrows=args.nrows
     )
     clustdf = read_clustfile(args.clustfile, sep="\t")
     clustdf = clustdf.loc[:, [args.clust_column] + args.ranks]
@@ -77,7 +80,10 @@ def main(args):
 
 def main_cli():
     parser = ArgumentParser()
-    parser.add_argument("--countsfile", type=str, help="Counts file of ASVs")
+    parser.add_argument(
+        "--countsfile",
+        type=str,
+        help="Counts file of ASVs")
     parser.add_argument(
         "--clustfile",
         type=str,
@@ -89,7 +95,15 @@ def main_cli():
         default="config.yml",
         help="Path to a yaml-format configuration file. Can be used to set arguments.",
     )
-    parser.add_argument("--ranks", nargs="+", help="Ranks to include in the output.")
+    parser.add_argument(
+        "--blanksfile",
+        type=str,
+        help="File with samples that are 'blanks'. These will be excluded when calculating ASV sums"
+    )
+    parser.add_argument(
+        "--ranks",
+        nargs="+",
+        help="Ranks to include in the output.")
     parser.add_argument(
         "--clust_column",
         type=str,

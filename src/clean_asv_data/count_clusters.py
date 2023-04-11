@@ -12,9 +12,7 @@ from clean_asv_data.__main__ import (
 )
 
 
-def sum_clusters(
-    clustdf, countsfile, clust_column, blanks=None, chunksize=None, nrows=None
-):
+def sum_clusters(clustdf, countsfile, clust_column, blanks=None, chunksize=None, nrows=None):
     """
     Calculates sums of clusters in each sample
 
