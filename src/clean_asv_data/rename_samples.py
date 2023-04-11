@@ -42,6 +42,7 @@ def read_and_rename(f, regex, regex_split, chunksize=None, nrows=None):
 
 
 def main(args):
+    args = read_config(args.configfile, args)
     read_and_rename(
         args.input, args.regex, args.regex_split, args.chunksize, args.nrows
     )
@@ -58,7 +59,7 @@ def main_cli():
         "--configfile",
         type=str,
         default="config.yml",
-        help="Path to a yaml-format configuration file. Can be used to set arguments."
+        help="Path to a yaml-format configuration file. Can be used to set arguments.",
     )
     parser.add_argument(
         "--regex",

@@ -2,6 +2,7 @@ import pandas as pd
 import yaml
 import os
 import importlib.resources
+import sys
 
 
 class objectview(object):
@@ -18,13 +19,18 @@ def update_args(args, config):
     :return:
     """
     for key, value in args.__dict__.items():
-        if value is not None:
+        # If argument is not set in configfile, add to config dict
+        if key not in config.keys():
             config[key] = value
+        # If argument is set in configfile, update config dict if value is not None
+        else:
+            if value is not None:
+                config[key] = value
     return config
 
 
 def load_configfile(configfile):
-    with open(configfile, 'r') as fhin:
+    with open(configfile, "r") as fhin:
         return yaml.safe_load(fhin)
 
 
@@ -39,7 +45,9 @@ def read_config(configfile, args):
     :return: config dict
     """
     # Read default config from package
-    default_configfile = str(importlib.resources.files("clean_asv_data") / "config/config.yml")
+    default_configfile = str(
+        importlib.resources.files("clean_asv_data") / "config/config.yml"
+    )
     config = load_configfile(default_configfile)
     if os.path.exists(configfile):
         cl_config = load_configfile(configfile)
@@ -50,6 +58,16 @@ def read_config(configfile, args):
     config = update_args(args, config)
     args = objectview(config)
     return args
+
+
+def read_blanks(f=None):
+    if f is None:
+        return []
+    sys.stderr.write("####\n" f"Reading list of blanks from {f}\n")
+    with open(f, "r") as fhin:
+        blanks = [x.rstrip() for x in fhin.readlines()]
+    sys.stderr.write(f"{len(blanks)} blanks read\n")
+    return blanks
 
 
 def read_clustfile(f, sep="\t"):
@@ -72,6 +90,8 @@ def generate_reader(f, chunksize, nrows):
     :param nrows: Number of total rows to read
     :return:
     """
+    if nrows == 0:
+        nrows = None
     r = pd.read_csv(
         f, sep="\t", index_col=0, header=0, nrows=nrows, chunksize=chunksize
     )

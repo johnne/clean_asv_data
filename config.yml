@@ -2,7 +2,7 @@
 #ASV_ID  FL005_pos       FL018_neg       FL018_pos       FL018_Neg_PCR   FL021_neg       FL021_pos       FL021_Neg_PCR
 #089ba876a0777bb7286689befba13374        0       0       213     0       0       39      0
 #3210001e96797aef10bc69ec22da291e        0       0       51238   0       0       8085    0
-countsfile: "data/asv_counts.bz2"
+countsfile: "data/asv_counts.tsv"
 
 # File with ASV taxonomy and cluster designations, example:
 #ASV     cluster median  Kingdom Phylum  Class   Order   Family  Genus   Species BOLD_bin        representative
@@ -55,3 +55,19 @@ regex-split: ","
 # script: count-clusters, clean-asv-data
 # column name for cluster designation
 clust_column: "cluster"
+
+# script: consensus-taxonomy
+# ranks to include in consensus output
+ranks: ["Kingdom","Phylum","Class","Order","Family","Genus","Species","BOLD_bin"]
+
+# script: consensus-taxonomy
+# ranks to use for resolving consensus taxonomies of clusters
+consensus_ranks: ["Family", "Genus","Species","BOLD_bin"]
+
+# script: consensus-taxonomy
+# threshold to use for consensus. For each cluster, iterate ranks in
+# <consensus_ranks> in reverse order (starting at lowest) and calculate
+# percentage of each taxonomic label based on total read counts. If a taxlabel
+# is above the threshold, use that label and it's parent labels as the taxonomy
+# for the cluster. Child ranks (if any) are prefixed with 'unresolved.'
+consensus_threshold: 80

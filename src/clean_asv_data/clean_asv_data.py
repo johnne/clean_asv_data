@@ -1,33 +1,26 @@
 #!/usr/bin/env python
-
+import argparse
 from argparse import ArgumentParser
 import pandas as pd
 import sys
 import tqdm
-from clean_asv_data.__main__ import read_config, update_args
-import importlib.resources
+from clean_asv_data.__main__ import read_config, generate_reader, read_clustfile, read_blanks
 
 
-def read_taxonomy(f):
-    sys.stderr.write("####\n" f"Reading clusters and taxonomy from {f}\n")
-    asv_taxa = pd.read_csv(f, sep="\t", index_col=0)
-    sys.stderr.write(f"{asv_taxa.shape[0]} ASVs read\n")
-    return asv_taxa
-
-
-def read_counts(f, blanks, chunksize=10000, nrows=0):
+def read_counts(countsfile, blanks=None, chunksize=None, nrows=None):
     """
     Read the counts file in chunks, if list of blanks is given, count occurrence
     in blanks and return as a column <in_n_blanks>. Also calculate max and
     sum for each ASV.
     """
-    if nrows == 0:
-        nrows = None
-    sys.stderr.write("####\n" f"Reading counts from {f}\n")
+    if blanks is None:
+        blanks = []
+    reader = generate_reader(countsfile, chunksize=chunksize, nrows=nrows)
+    sys.stderr.write("####\n" f"Reading counts from {countsfile}\n")
     dataframe = pd.DataFrame()
     for i, df in enumerate(
         tqdm.tqdm(
-            pd.read_csv(f, sep="\t", index_col=0, chunksize=chunksize, nrows=nrows),
+            reader,
             unit=" chunks",
         )
     ):
@@ -47,9 +40,8 @@ def read_counts(f, blanks, chunksize=10000, nrows=0):
         # calculate ASV max
         asv_max = pd.DataFrame(df.drop(blanks, axis=1).max(axis=1), columns=["ASV_max"])
         _dataframe = pd.merge(asv_sum, asv_max, left_index=True, right_index=True)
-        _dataframe = pd.merge(
-            _dataframe, asv_blank_count, left_index=True, right_index=True
-        )
+        if len(blanks) > 0:
+            _dataframe = pd.merge(_dataframe, asv_blank_count, left_index=True, right_index=True)
         dataframe = pd.concat([dataframe, _dataframe])
     sys.stderr.write(
         f"Read counts for {dataframe.shape[0]} ASVs in " f"{samples} samples\n"
@@ -74,14 +66,6 @@ def clean_by_taxonomy(dataframe, rank="Family"):
     return cleaned
 
 
-def read_blanks(f):
-    sys.stderr.write("####\n" f"Reading list of blanks from {f}\n")
-    with open(f, "r") as fhin:
-        blanks = [x.rstrip() for x in fhin.readlines()]
-    sys.stderr.write(f"{len(blanks)} blanks read\n")
-    return blanks
-
-
 def clean_by_reads(dataframe, min_clust_count=3):
     """
     Remove clusters with a sum less than <min_reads> across samples
@@ -103,10 +87,12 @@ def clean_by_reads(dataframe, min_clust_count=3):
     return df
 
 
-def clean_by_blanks(dataframe, blanks, mode="asv", max_blank_occurrence=5):
+def clean_by_blanks(dataframe, blanks=None, mode="asv", max_blank_occurrence=5):
     """
     Removes clusters with ASVs present in > <max_blank_occurrence>% of blanks
     """
+    if blanks is None or len(blanks) == 0:
+        return dataframe
     sys.stderr.write(
         "####\n" f"Removing {mode}s in >{max_blank_occurrence}% of blanks\n"
     )
@@ -129,12 +115,15 @@ def main(args):
     # Read config
     args = read_config(args.configfile, args)
     # Read taxonomy + clusters
-    asv_taxa = read_taxonomy(args.clustfile)
+    asv_taxa = read_clustfile(args.clustfile)
     # Read blanks
-    blanks = read_blanks(args.blanksfile) if args.blanksfile else []
+    blanks = read_blanks(args.blanksfile)
     # Read counts
     counts = read_counts(
-        f=args.countsfile, blanks=blanks, chunksize=args.chunksize, nrows=args.nrows
+        countsfile=args.countsfile,
+        blanks=blanks,
+        chunksize=args.chunksize,
+        nrows=args.nrows,
     )
     # Clean by taxonomy
     asv_taxa_cleaned = clean_by_taxonomy(dataframe=asv_taxa, rank=args.clean_rank)
@@ -143,13 +132,12 @@ def main(args):
         asv_taxa_cleaned, counts, left_index=True, right_index=True
     )
     # Clean by blanks
-    if args.blanksfile:
-        asv_taxa_cleaned = clean_by_blanks(
-            dataframe=asv_taxa_cleaned,
-            blanks=args.blanksfile,
-            mode=args.blank_removal_mode,
-            max_blank_occurrence=args.max_blank_occurrence,
-        )
+    asv_taxa_cleaned = clean_by_blanks(
+        dataframe=asv_taxa_cleaned,
+        blanks=blanks,
+        mode=args.blank_removal_mode,
+        max_blank_occurrence=args.max_blank_occurrence,
+    )
     # Clean by read sum
     asv_taxa_cleaned = clean_by_reads(
         dataframe=asv_taxa_cleaned, min_clust_count=args.min_clust_count
@@ -187,8 +175,12 @@ def main_cli():
     )
     io_group.add_argument("--output", type=str, help="Output file with cleaned results")
     params_group = parser.add_argument_group("params")
-    params_group.add_argument("--configfile", type=str, default="config.yml",
-                              help="Path to a yaml-format configuration file. Can be used to set arguments.")
+    params_group.add_argument(
+        "--configfile",
+        type=str,
+        default="config.yml",
+        help="Path to a yaml-format configuration file. Can be used to set arguments.",
+    )
     params_group.add_argument(
         "--clean_rank",
         type=str,
@@ -230,8 +222,7 @@ def main_cli():
     debug_group.add_argument(
         "--nrows",
         type=int,
-        help="Rows to read from countsfile (for testing purposes only)",
+        help=argparse.SUPPRESS,
     )
     args = parser.parse_args()
     main(args)
-
