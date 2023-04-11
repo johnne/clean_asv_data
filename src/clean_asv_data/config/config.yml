@@ -33,7 +33,7 @@ clean_rank: "Family"
 # The regex-split character is used to split the regular expressions
 # into "<pattern> and <repl>. For example with --regex "'FL\d+_L,L the
 #  --regex-split ',' will replace "'FL\d+_L' with 'L'.
-regex-split: ","
+regex_split: ","
 
 # script: count-clusters, clean-asv-data
 # column name for cluster designation
