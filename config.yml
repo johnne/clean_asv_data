@@ -2,7 +2,7 @@
 #ASV_ID  FL005_pos       FL018_neg       FL018_pos       FL018_Neg_PCR   FL021_neg       FL021_pos       FL021_Neg_PCR
 #089ba876a0777bb7286689befba13374        0       0       213     0       0       39      0
 #3210001e96797aef10bc69ec22da291e        0       0       51238   0       0       8085    0
-countsfile: "data/asv_counts.bz2"
+countsfile: "data/asv_counts.tsv"
 
 # File with ASV taxonomy and cluster designations, example:
 #ASV     cluster median  Kingdom Phylum  Class   Order   Family  Genus   Species BOLD_bin        representative
