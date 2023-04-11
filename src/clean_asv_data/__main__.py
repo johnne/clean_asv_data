@@ -19,8 +19,13 @@ def update_args(args, config):
     :return:
     """
     for key, value in args.__dict__.items():
-        if value is not None:
+        # If argument is not set in configfile, add to config dict
+        if key not in config.keys():
             config[key] = value
+        # If argument is set in configfile, update config dict if value is not None
+        else:
+            if value is not None:
+                config[key] = value
     return config
 
 
