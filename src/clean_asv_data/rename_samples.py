@@ -7,6 +7,7 @@ from argparse import ArgumentParser
 import tqdm
 import sys
 from clean_asv_data.__main__ import generate_reader, read_config
+import tqdm
 
 
 def generate_subs(regex, regex_split):
@@ -30,8 +31,9 @@ def read_and_rename(f, regex, regex_split, chunksize=None, nrows=None):
     """
     subs = generate_subs(regex, regex_split)
     reader = generate_reader(f, chunksize, nrows)
+    sys.stderr.write(f"#Renaming samples in {f}\n")
     with sys.stdout as fhout:
-        for i, df in enumerate(tqdm.tqdm(reader)):
+        for i, df in enumerate(tqdm.tqdm(reader, unit=" chunks")):
             if i == 0:
                 for pattern, repl in subs:
                     df.rename(columns=lambda x: re.sub(pattern, repl, x), inplace=True)
@@ -68,7 +70,7 @@ def main_cli():
         "rename column names of the input file. ",
     )
     parser.add_argument(
-        "--regex-split",
+        "--regex_split",
         type=str,
         help="Character used to split the regular expressions "
         "into"
