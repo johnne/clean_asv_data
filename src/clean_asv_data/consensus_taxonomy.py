@@ -89,6 +89,7 @@ def main(args):
         consensus_ranks=args.consensus_ranks,
         consensus_threshold=args.consensus_threshold,
     )
+    resolved.index.name = "cluster"
     with sys.stdout as fhout:
         resolved.to_csv(fhout, sep="\t")
 
