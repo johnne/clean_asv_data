@@ -34,6 +34,7 @@ def main(args):
         args.countsfile, blanks, chunksize=args.chunksize, nrows=args.nrows
     )
     sys.stderr.write(f"Writing stats for {dataframe.shape[0]} ASVs to stdout\n")
+    dataframe.index.name = "ASV"
     with sys.stdout as fhout:
         dataframe.to_csv(fhout, sep="\t")
 
