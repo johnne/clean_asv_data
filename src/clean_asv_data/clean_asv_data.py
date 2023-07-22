@@ -149,13 +149,20 @@ def main(args):
     asv_taxa_cleaned = clean_by_reads(
         dataframe=asv_taxa_cleaned, min_clust_count=args.min_clust_count
     )
+    asv_taxa_cleaned.index.name = "ASV"
     # Write to output
-    with sys.stdout as fhout:
-        sys.stderr.write(
-            "####\n" f"Writing {asv_taxa_cleaned.shape[0]} ASVs to stdout\n"
-        )
-        asv_taxa.index.name = "ASV"
-        asv_taxa_cleaned.to_csv(fhout, sep="\t")
+    if not args.output:
+        with sys.stdout as fhout:
+            sys.stderr.write(
+                "####\n" f"Writing {asv_taxa_cleaned.shape[0]} ASVs to stdout\n"
+            )
+            asv_taxa_cleaned.to_csv(fhout, sep="\t")
+    else:
+        with open(args.output, 'w') as fhout:
+            sys.stderr.write(
+                "####\n" f"Writing {asv_taxa_cleaned.shape[0]} ASVs to {args.output}\n"
+            )
+            asv_taxa_cleaned.to_csv(fhout, sep="\t")
 
 
 def main_cli():
