@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 import pandas as pd
 import sys
 import tqdm
-from clean_asv_data.__main__ import read_config, generate_reader, read_clustfile, read_blanks
+from clean_asv_data.__main__ import read_config, generate_reader, read_clustfile, read_blanks, read_metadata
 
 
 def read_counts(countsfile, blanks=None, chunksize=None, nrows=None):
@@ -87,9 +87,9 @@ def clean_by_reads(dataframe, min_clust_count=3):
     return df
 
 
-def clean_by_blanks(dataframe, blanks=None, mode="asv", max_blank_occurrence=5):
+def clean_by_blanks(dataframe, metadata=None, split_col="dataset", blanks=None, mode="asv", max_blank_occurrence=5):
     """
-    Removes clusters with ASVs present in > <max_blank_occurrence>% of blanks
+    Removes ASVs present in > <max_blank_occurrence>% of blanks
     """
     if blanks is None or len(blanks) == 0:
         return dataframe
@@ -118,6 +118,9 @@ def main(args):
     asv_taxa = read_clustfile(args.clustfile)
     # Read blanks
     blanks = read_blanks(args.blanksfile)
+    metadata = None
+    if args.metadata:
+        metadata = read_metadata(args.metadata, index_name=args.metadata_index_name)
     # Read counts
     counts = read_counts(
         countsfile=args.countsfile,
@@ -134,6 +137,7 @@ def main(args):
     # Clean by blanks
     asv_taxa_cleaned = clean_by_blanks(
         dataframe=asv_taxa_cleaned,
+        metadata=metadata,
         blanks=blanks,
         mode=args.blank_removal_mode,
         max_blank_occurrence=args.max_blank_occurrence,
@@ -172,6 +176,17 @@ def main_cli():
     )
     io_group.add_argument(
         "--blanksfile", type=str, help="File with samples that are 'blanks'"
+    )
+    io_group.add_argument(
+        "--metadata", type=str, help="Metadata file for splitting samples by datasets"
+    )
+    io_group.add_argument(
+        "--metadata_index_name", type=str, help="Name of column in metadata file that contains sample ids",
+        default="sampleID_SEQ"
+    )
+    io_group.add_argument(
+        "--split_col", type=str, help="Name of column in metadata file by which to split samples by prior to cleaning"
+                                      "by blanks", default="dataset"
     )
     io_group.add_argument("--output", type=str, help="Output file with cleaned results")
     params_group = parser.add_argument_group("params")

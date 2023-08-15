@@ -70,6 +70,12 @@ def read_blanks(f=None):
     return blanks
 
 
+def read_metadata(f, index_name="sampleID_SEQ"):
+    sys.stderr.write("####\n" f"Reading metadata from {f}\n")
+    df = pd.read_csv(f, sep="\t", header=0, comment="#")
+    return df.set_index(index_name)
+
+
 def read_clustfile(f, sep="\t"):
     """
     Reads a cluster membership file for ASVs
