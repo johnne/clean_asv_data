@@ -3,6 +3,7 @@ import argparse
 from argparse import ArgumentParser
 import pandas as pd
 import sys
+import os
 import tqdm
 from clean_asv_data.__main__ import read_config, generate_reader, read_clustfile, read_blanks, read_metadata
 
@@ -150,8 +151,15 @@ def clean_by_blanks(dataframe, blanks=None, mode="asv", max_blank_occurrence=5):
 
 
 def main(args):
+    data = {}
     # Read config
     args = read_config(args.configfile, args)
+    if not args.output:
+        outdir = "."
+        output = "cleaned.tsv"
+    else:
+        outdir = os.path.dirname(args.output)
+        output = os.path.basename(args.output)
     # Read taxonomy + clusters
     asv_taxa = read_clustfile(args.clustfile)
     # Read blanks
@@ -172,28 +180,31 @@ def main(args):
     # Clean by taxonomy
     asv_taxa_cleaned = clean_by_taxonomy(dataframe=asv_taxa, rank=args.clean_rank)
     # Merge counts + taxonomy
-    asv_taxa_cleaned = pd.merge(
-        asv_taxa_cleaned, counts, left_index=True, right_index=True
-    )
-    # Clean by blanks
-    asv_taxa_cleaned = clean_by_blanks(
-        dataframe=asv_taxa_cleaned,
-        metadata=metadata,
-        blanks=blanks,
-        mode=args.blank_removal_mode,
-        max_blank_occurrence=args.max_blank_occurrence,
-    )
-    # Clean by read sum
-    asv_taxa_cleaned = clean_by_reads(
-        dataframe=asv_taxa_cleaned, min_clust_count=args.min_clust_count
-    )
-    # Write to output
-    with sys.stdout as fhout:
-        sys.stderr.write(
-            "####\n" f"Writing {asv_taxa_cleaned.shape[0]} ASVs to stdout\n"
+    for dataset, dataframe in counts.items():
+        sys.stderr.write("####\n" f"Cleaning {dataset}\n")
+        dataframe = pd.merge(asv_taxa_cleaned, dataframe, left_index=True, right_index=True)
+        # Clean by blanks
+        dataframe = clean_by_blanks(
+            dataframe=dataframe,
+            blanks=blanks,
+            mode=args.blank_removal_mode,
+            max_blank_occurrence=args.max_blank_occurrence,
         )
-        asv_taxa.index.name = "ASV"
-        asv_taxa_cleaned.to_csv(fhout, sep="\t")
+        # Clean by read sum
+        dataframe = clean_by_reads(
+            dataframe=dataframe, min_clust_count=args.min_clust_count
+        )
+        dataframe.index.name = "ASV"
+        # Write to output
+        if len(counts.keys()) > 1:
+            outfile = f"{outdir}/{dataset}.{output}"
+        else:
+            outfile = f"{outdir}/{output}"
+        with open(outfile, 'w') as fhout:
+            sys.stderr.write(
+                "####\n" f"Writing cleaned {dataset} with {dataframe.shape[0]} ASVs to {outfile}\n"
+            )
+            dataframe.to_csv(fhout, sep="\t")
 
 
 def main_cli():
@@ -229,7 +240,9 @@ def main_cli():
         "--split_col", type=str, help="Name of column in metadata file by which to split samples by prior to cleaning"
                                       "by blanks", default="dataset"
     )
-    io_group.add_argument("--output", type=str, help="Output file with cleaned results")
+    io_group.add_argument("--output", type=str, help="Output file with cleaned results. If input data will be split"
+                                                     "into multiple datasets there will be one cleaned file per dataset"
+                                                     "with this parameter used to set the file name ending")
     params_group = parser.add_argument_group("params")
     params_group.add_argument(
         "--configfile",
