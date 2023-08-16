@@ -7,7 +7,7 @@ import tqdm
 from clean_asv_data.__main__ import read_config, generate_reader, read_clustfile, read_blanks, read_metadata
 
 
-def read_counts(countsfile, blanks=None, chunksize=None, nrows=None):
+def read_counts(countsfile, metadata=None, split_col="dataset", blanks=None, chunksize=None, nrows=None):
     """
     Read the counts file in chunks, if list of blanks is given, count occurrence
     in blanks and return as a column <in_n_blanks>. Also calculate max and
@@ -17,36 +17,71 @@ def read_counts(countsfile, blanks=None, chunksize=None, nrows=None):
         blanks = []
     reader = generate_reader(countsfile, chunksize=chunksize, nrows=nrows)
     sys.stderr.write("####\n" f"Reading counts from {countsfile}\n")
-    dataframe = pd.DataFrame()
+    data = {}
+    n_asvs = n_datasets = n_samples = 0
     for i, df in enumerate(
-        tqdm.tqdm(
-            reader,
-            unit=" chunks",
-        )
+            tqdm.tqdm(
+                reader,
+                unit=" chunks",
+            )
     ):
+        n_asvs += df.shape[0]
         if i == 0:
-            samples = df.shape[1]
-        if len(blanks) > 0:
-            blank_counts = df.loc[:, blanks]
-            # calculate occurrence in blanks
-            asv_blank_count = pd.DataFrame(
-                blank_counts.gt(0).sum(axis=1), columns=["in_n_blanks"]
-            )
-            asv_blank_count["in_percent_blanks"] = (
-                asv_blank_count.div(len(blanks)) * 100
-            )
-        # calculate ASV sum (remove blanks)
-        asv_sum = pd.DataFrame(df.drop(blanks, axis=1).sum(axis=1), columns=["ASV_sum"])
-        # calculate ASV max
-        asv_max = pd.DataFrame(df.drop(blanks, axis=1).max(axis=1), columns=["ASV_max"])
-        _dataframe = pd.merge(asv_sum, asv_max, left_index=True, right_index=True)
-        if len(blanks) > 0:
-            _dataframe = pd.merge(_dataframe, asv_blank_count, left_index=True, right_index=True)
-        dataframe = pd.concat([dataframe, _dataframe])
+            n_samples = df.shape[1]
+            sample_names = list(df.columns)
+            if metadata is None:
+                # set up dummy metadata
+                split_col = "dataset"
+                metadata = pd.DataFrame(data={split_col: [split_col] * len(sample_names)}, index=sample_names)
+        # get unique values of split_col
+        split_col_vals = metadata[split_col].unique()
+        for val in split_col_vals:
+            if val not in data.keys():
+                data[val] = pd.DataFrame()
+            # get samples corresponding to split
+            val_samples = metadata.loc[metadata[split_col] == val].index
+            # get intersection of val_samples and the df columns
+            val_samples_intersect = list(set(val_samples).intersection(df.columns))
+            if len(val_samples_intersect) == 0:
+                sys.stderr.write("####\n" f"No samples found in counts data for {val}, skipping...\n")
+                continue
+            n_datasets += 1
+            # get samples in val_samples missing from df columns
+            missing_samples = set(val_samples).difference(val_samples_intersect)
+            if len(missing_samples) > 0 and i == 0:
+                sys.stderr.write(
+                    "####\n" f"WARNING: {len(missing_samples)} samples in metadata file are missing from counts file:\n")
+                sys.stderr.write(f"{', '.join(missing_samples)} \n")
+            # split the counts dataframe
+            split_df = df.loc[:, val_samples_intersect]
+            # get blanks for this dataset
+            val_blanks = list(set(blanks).intersection(val_samples_intersect))
+            # get blanks in metadata actually present in counts data
+            val_blanks_intersect = list(set(val_blanks).intersection(val_samples_intersect))
+            # get blanks missing
+            # missing_blanks = set(val_blanks).difference(val_blanks_intersect)
+            if i == 0:
+                sys.stderr.write("####\n" f"{len(val_blanks_intersect)} blanks found for {val}")
+            # calculate ASV sum (remove blanks)
+            asv_sum = pd.DataFrame(split_df.drop(val_blanks_intersect, axis=1).sum(axis=1), columns=["ASV_sum"])
+            # calculate ASV max
+            asv_max = pd.DataFrame(split_df.drop(val_blanks_intersect, axis=1).max(axis=1), columns=["ASV_max"])
+            _dataframe = pd.merge(asv_sum, asv_max, left_index=True, right_index=True)
+            if len(val_blanks_intersect) > 0:
+                blank_counts = split_df.loc[:, val_blanks_intersect]
+                # calculate occurrence in blanks
+                asv_blank_count = pd.DataFrame(
+                    blank_counts.gt(0).sum(axis=1), columns=["in_n_blanks"]
+                )
+                asv_blank_count["in_percent_blanks"] = (
+                        asv_blank_count.div(len(val_blanks_intersect)) * 100
+                )
+                _dataframe = pd.merge(_dataframe, asv_blank_count, left_index=True, right_index=True)
+            data[val] = pd.concat([data[val], _dataframe])
     sys.stderr.write(
-        f"Read counts for {dataframe.shape[0]} ASVs in " f"{samples} samples\n"
+        f"Read counts for {n_asvs} ASVs in " f"{n_samples} samples and {n_datasets} datasets\n"
     )
-    return dataframe
+    return data
 
 
 def clean_by_taxonomy(dataframe, rank="Family"):
@@ -58,7 +93,7 @@ def clean_by_taxonomy(dataframe, rank="Family"):
     sys.stderr.write("####\n" f"Removing ASVs unclassified at {rank}\n")
     cleaned = df.loc[
         (~df[rank].str.contains("_X+$")) & (~df[rank].str.startswith("unclassified"))
-    ]
+        ]
     after = cleaned.shape[0]
     sys.stderr.write(
         f"{before - after} ASVs removed, {cleaned.shape[0]} ASVs remaining\n"
@@ -87,7 +122,7 @@ def clean_by_reads(dataframe, min_clust_count=3):
     return df
 
 
-def clean_by_blanks(dataframe, metadata=None, split_col="dataset", blanks=None, mode="asv", max_blank_occurrence=5):
+def clean_by_blanks(dataframe, blanks=None, mode="asv", max_blank_occurrence=5):
     """
     Removes ASVs present in > <max_blank_occurrence>% of blanks
     """
@@ -118,12 +153,15 @@ def main(args):
     asv_taxa = read_clustfile(args.clustfile)
     # Read blanks
     blanks = read_blanks(args.blanksfile)
+    # Read metadata
     metadata = None
     if args.metadata:
         metadata = read_metadata(args.metadata, index_name=args.metadata_index_name)
-    # Read counts
+    # Read counts (returns a dictionary)
     counts = read_counts(
         countsfile=args.countsfile,
+        metadata=args.metadata,
+        split_col=args.split_col,
         blanks=blanks,
         chunksize=args.chunksize,
         nrows=args.nrows,
@@ -171,8 +209,8 @@ def main_cli():
         "--clustfile",
         type=str,
         help="Taxonomy file for ASVs. Should also "
-        "include a"
-        "column with cluster designation.",
+             "include a"
+             "column with cluster designation.",
     )
     io_group.add_argument(
         "--blanksfile", type=str, help="File with samples that are 'blanks'"
@@ -205,28 +243,28 @@ def main_cli():
         "--max_blank_occurrence",
         type=int,
         help="Remove ASVs occurring in clusters where at "
-        "least one member is present in "
-        "<max_blank_occurrence>%% of blank samples. "
-        "(default 5)",
+             "least one member is present in "
+             "<max_blank_occurrence>%% of blank samples. "
+             "(default 5)",
     )
     params_group.add_argument(
         "--blank_removal_mode",
         type=str,
         choices=["cluster", "asv"],
         help="How to remove sequences based on "
-        "occurrence in blanks. If 'asv' ("
-        "default) remove "
-        "only ASVs that occur in more than "
-        "<max_blank_occurrence>%% of blanks. If "
-        "'cluster', remove ASVs in clusters where "
-        "one or more ASVs is above the "
-        "<max_blank_occurrence> threshold",
+             "occurrence in blanks. If 'asv' ("
+             "default) remove "
+             "only ASVs that occur in more than "
+             "<max_blank_occurrence>%% of blanks. If "
+             "'cluster', remove ASVs in clusters where "
+             "one or more ASVs is above the "
+             "<max_blank_occurrence> threshold",
     )
     params_group.add_argument(
         "--min_clust_count",
         type=int,
         help="Remove clusters with < <min_clust_count> "
-        "summed across samples (default 3)",
+             "summed across samples (default 3)",
     )
     debug_group = parser.add_argument_group("debug")
     debug_group.add_argument(
