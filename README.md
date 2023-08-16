@@ -31,57 +31,53 @@ python -m pip install .
 You may have to deactivate and re-activate the `clean_asv_data` environment 
 after this command.
 
-## Usage
+## Typical workflow
 
-### rename-samples
-
-The `rename-samples` script allows you to rename sample names in a 
-tab-separated file where each sample is a column. It uses regular 
-expressions defined with the `--regex` argument. Any number of regular 
-expressions can be supplied, in the format `<pattern><split><repl>` where 
-`<pattern>` is the string pattern to search for, `<repl>` is the string to 
-replace the pattern with and `<split>` is a string used to separate the two 
-former.
-
-Example:
-
-With a file `counts.tsv´ with sample names in columns like so:
-
-```
-        FL001_L1001     FL001_neg       SOIL_1001
-ASV1    ...
-```
-
-To rename all samples starting with `FL\d+_L` ('FL' followed by 1 or more 
-digits (0-9), and the '_L' string) and keep only the `L`:
+For example, with input files under `data/`:
 
 ```bash
-rename-samples --regex 'FL\d+_L,L' --regex-split ',' counts.tsv > counts.renamed.tsv
+data
+├── asv_counts.tsv
+├── blanks.txt
+└── clustfile.tsv
 ```
 
-Result:
-```
-        L1001   FL001_neg       SOIL_1001
-ASV 
-```
+Create directory to hold processed output:
 
-All arguments:
 ```bash
-usage: rename-samples [-h] [--regex REGEX [REGEX ...]] [--regex-split REGEX_SPLIT] [--chunksize CHUNKSIZE] input
-
-positional arguments:
-  input                 Tab-separated input file with sample names in columns
-
-options:
-  -h, --help            show this help message and exit
-  --regex REGEX [REGEX ...]
-                        One or more regular expressions to use to rename column names of the input file.
-  --regex-split REGEX_SPLIT
-                        Character used to split the regular expressions into<pattern> and <repl>. For example with --regex 'FL\d+_L,L the --regex-split ',' will replace 'FL\d+_L' with 'L'. Default ','
-  --chunksize CHUNKSIZE
-                        If input file is very large, specify chunksize to read it in a number of lines at a time
-
+mkdir results
 ```
+
+### Step 1. Clean ASV data
+
+```bash
+clean-asv-data --countsfile data/asv_counts.tsv \
+  --blanksfile data/blanks.txt \
+  --clustfile data/clustfile.tsv > results/cleaned_clustfile.tsv
+```
+
+### Step 2. Generate stats
+
+```bash
+generate-statsfile --countsfile data/asv_counts.tsv \
+  --blanksfile data/banks.txt > resultsd/asv_stats.tsv
+```
+
+### Step 3. Generate consensus taxonomy
+
+```bash
+consensus-taxonomy --countsfile data/asv_counts.tsv \
+  --clustfile results/cleaned_clustfile.tsv > results/cleaned_cluster_taxonomy.tsv
+```
+
+### Step 4. Count clusters
+
+```bash
+count-clusters --countsfile data/asv_counts.tsv \
+  --clustfile results/cleaned_clustfile.tsv > results/cleaned_cluster_count.tsv
+```
+
+## Scripts
 
 ### clean-asv-data
 

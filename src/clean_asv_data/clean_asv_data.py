@@ -94,13 +94,18 @@ def clean_by_taxonomy(dataframe, rank="Family"):
     """
     df = dataframe.copy()
     before = df.shape[0]
+    cl_before = len(df["cluster"].unique())
     sys.stderr.write("####\n" f"Removing ASVs unclassified at {rank}\n")
     cleaned = df.loc[
         (~df[rank].str.contains("_X+$")) & (~df[rank].str.startswith("unclassified"))
         ]
     after = cleaned.shape[0]
+    cl_after = len(cleaned["cluster"].unique())
     sys.stderr.write(
         f"{before - after} ASVs removed, {cleaned.shape[0]} ASVs remaining\n"
+    )
+    sys.stderr.write(
+        f"{cl_before-cl_after} clusters removed, {cl_after} clusters remaining\n"
     )
     return cleaned
 
@@ -161,7 +166,9 @@ def main(args):
         outdir = os.path.dirname(args.output)
         output = os.path.basename(args.output)
     # Read taxonomy + clusters
+    sys.stderr.write("####\n" f"Reading clustfile {args.clustfile}\n")
     asv_taxa = read_clustfile(args.clustfile)
+    sys.stderr.write("###\n" f"Found {asv_taxa.shape[0]} ASVs in {len(asv_taxa['cluster'].unique())} clusters\n")
     # Read blanks
     blanks = read_blanks(args.blanksfile)
     # Read metadata

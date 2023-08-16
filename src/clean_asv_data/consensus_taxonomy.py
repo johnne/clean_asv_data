@@ -60,13 +60,28 @@ def sum_asvs(countsfile, blanks=None, chunksize=None, nrows=None):
 
 def main(args):
     args = read_config(args.configfile, args)
+    sys.stderr.write(
+        "####\n" f"Reading blanks from {args.blanksfile}\n"
+    )
     blanks = read_blanks(args.blanksfile)
+    sys.stderr.write(
+        "####\n" f"Read {len(blanks)} blanks\n"
+    )
+    sys.stderr.write(
+        "####\n Summing counts for ASVs\n"
+    )
     asv_sum = sum_asvs(
         countsfile=args.countsfile, blanks=blanks, chunksize=args.chunksize, nrows=args.nrows
+    )
+    sys.stderr.write(
+        "####\n" f"Reading ASV clusters from {args.clustfile}\n"
     )
     clustdf = read_clustfile(args.clustfile, sep="\t")
     clustdf = clustdf.loc[:, [args.clust_column] + args.ranks]
     clustdf = pd.merge(asv_sum, clustdf, left_index=True, right_index=True)
+    sys.stderr.write(
+        "####\n" f"Resolving taxonomies using {args.consensus_threshold}% majority rule threshold\n"  
+    )
     resolved = find_consensus_taxonomies(
         clustdf=clustdf,
         clust_column=args.clust_column,
@@ -74,6 +89,7 @@ def main(args):
         consensus_ranks=args.consensus_ranks,
         consensus_threshold=args.consensus_threshold,
     )
+    resolved.index.name = "cluster"
     with sys.stdout as fhout:
         resolved.to_csv(fhout, sep="\t")
 
@@ -102,26 +118,26 @@ def main_cli():
     )
     parser.add_argument(
         "--ranks",
-        nargs="+",
+        nargs="+", default=["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species", "BOLD_bin"],
         help="Ranks to include in the output.")
     parser.add_argument(
         "--clust_column",
-        type=str,
+        type=str, default="cluster",
         help="Name of cluster column, e.g. 'cluster'",
     )
     parser.add_argument(
         "--consensus_threshold",
-        type=int,
+        type=int, default=80,
         help="Threshold (in %%) at which to assign taxonomy to a cluster",
     )
     parser.add_argument(
         "--consensus_ranks",
-        nargs="+",
+        nargs="+", default=["Family", "Genus","Species","BOLD_bin"],
         help="Ranks to use for calculating consensus. Must be present in the clustfile.",
     )
     parser.add_argument(
         "--chunksize",
-        type=int,
+        type=int, default=10000,
         help="If countsfile is very large, specify chunksize to read it in a number of lines at a time",
     )
     parser.add_argument("--nrows", type=int, help=argparse.SUPPRESS)
