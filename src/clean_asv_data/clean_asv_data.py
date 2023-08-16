@@ -18,6 +18,7 @@ def read_counts(countsfile, metadata=None, split_col="dataset", blanks=None, chu
     reader = generate_reader(countsfile, chunksize=chunksize, nrows=nrows)
     sys.stderr.write("####\n" f"Reading counts from {countsfile}\n")
     data = {}
+    warnings = []
     n_asvs = n_datasets = n_samples = 0
     for i, df in enumerate(
             tqdm.tqdm(
@@ -42,16 +43,16 @@ def read_counts(countsfile, metadata=None, split_col="dataset", blanks=None, chu
             val_samples = metadata.loc[metadata[split_col] == val].index
             # get intersection of val_samples and the df columns
             val_samples_intersect = list(set(val_samples).intersection(df.columns))
-            if len(val_samples_intersect) == 0:
-                sys.stderr.write("####\n" f"No samples found in counts data for {val}, skipping...\n")
+            if len(val_samples_intersect) == 0 and i ==0:
+                warnings.append("####\n" f"No samples found in counts data for {val}, skipping...\n")
                 continue
             n_datasets += 1
             # get samples in val_samples missing from df columns
             missing_samples = set(val_samples).difference(val_samples_intersect)
             if len(missing_samples) > 0 and i == 0:
-                sys.stderr.write(
-                    "####\n" f"WARNING: {len(missing_samples)} samples in metadata file are missing from counts file:\n")
-                sys.stderr.write(f"{', '.join(missing_samples)} \n")
+                warnings.append(
+                    "####\n" f"WARNING: {len(missing_samples)} samples in metadata file are missing from counts file for {val}:\n")
+                warnings.append(f"{', '.join(missing_samples)} \n")
             # split the counts dataframe
             split_df = df.loc[:, val_samples_intersect]
             # get blanks for this dataset
@@ -61,7 +62,7 @@ def read_counts(countsfile, metadata=None, split_col="dataset", blanks=None, chu
             # get blanks missing
             # missing_blanks = set(val_blanks).difference(val_blanks_intersect)
             if i == 0:
-                sys.stderr.write("####\n" f"{len(val_blanks_intersect)} blanks found for {val}")
+                warnings.append("####\n" f"{len(val_blanks_intersect)} blanks found for {val}\n")
             # calculate ASV sum (remove blanks)
             asv_sum = pd.DataFrame(split_df.drop(val_blanks_intersect, axis=1).sum(axis=1), columns=["ASV_sum"])
             # calculate ASV max
@@ -81,6 +82,8 @@ def read_counts(countsfile, metadata=None, split_col="dataset", blanks=None, chu
     sys.stderr.write(
         f"Read counts for {n_asvs} ASVs in " f"{n_samples} samples and {n_datasets} datasets\n"
     )
+    for item in warnings:
+        sys.stderr.write(item)
     return data
 
 
