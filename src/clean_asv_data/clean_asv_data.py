@@ -237,10 +237,10 @@ def main_cli():
         default="sampleID_SEQ"
     )
     io_group.add_argument(
-        "--split_col", type=str, help="Name of column in metadata file by which to split samples by prior to cleaning"
+        "--split_col", type=str, help="Name of column in metadata file by which to split samples by prior to cleaning "
                                       "by blanks", default="dataset"
     )
-    io_group.add_argument("--output", type=str, help="Output file with cleaned results. If input data will be split"
+    io_group.add_argument("--output", type=str, help="Output file with cleaned results. If input data will be split "
                                                      "into multiple datasets there will be one cleaned file per dataset"
                                                      "with this parameter used to set the file name ending")
     params_group = parser.add_argument_group("params")
