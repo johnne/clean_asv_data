@@ -178,7 +178,7 @@ def main(args):
     # Read counts (returns a dictionary)
     counts = read_counts(
         countsfile=args.countsfile,
-        metadata=args.metadata,
+        metadata=metadata,
         split_col=args.split_col,
         blanks=blanks,
         chunksize=args.chunksize,
