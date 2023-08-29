@@ -135,7 +135,7 @@ def clean_by_blanks(dataframe, blanks=None, mode="asv", max_blank_occurrence=5):
     """
     Removes ASVs present in > <max_blank_occurrence>% of blanks
     """
-    if blanks is None or len(blanks) == 0:
+    if blanks is None or len(blanks) == 0 or "in_percent_blanks" not in dataframe.columns:
         return dataframe
     sys.stderr.write(
         "####\n" f"Removing {mode}s in >{max_blank_occurrence}% of blanks\n"
