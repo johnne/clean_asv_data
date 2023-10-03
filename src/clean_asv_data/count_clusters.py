@@ -30,7 +30,7 @@ def sum_clusters(clustdf, countsfile, clust_column, blanks=None, chunksize=None,
     for df in tqdm.tqdm(reader, desc="reading counts", unit=" chunks"):
         merged = pd.merge(
             clustdf.loc[:, clust_column],
-            df.drop(blanks, axis=1),
+            df.drop(blanks, axis=1, errors='ignore'),
             left_index=True,
             right_index=True,
         )
