@@ -19,9 +19,9 @@ def read_counts(countsfile, blanks=None, chunksize=None, nrows=None):
     sys.stderr.write(f"Reading {countsfile} in chunks of {chunksize} lines\n")
     for df in tqdm.tqdm(reader, unit=" chunks"):
         asv_occ = pd.DataFrame(
-            df.drop(blanks, axis=1).gt(0).sum(axis=1), columns=["occurrence"]
+            df.drop(blanks, axis=1, errors="ignore").gt(0).sum(axis=1), columns=["occurrence"]
         )
-        asv_sum = pd.DataFrame(df.drop(blanks, axis=1).sum(axis=1), columns=["reads"])
+        asv_sum = pd.DataFrame(df.drop(blanks, axis=1, errors="ignore").sum(axis=1), columns=["reads"])
         _dataframe = pd.merge(asv_sum, asv_occ, left_index=True, right_index=True)
         dataframe = pd.concat([dataframe, _dataframe])
     return dataframe
