@@ -53,7 +53,7 @@ def sum_asvs(countsfile, blanks=None, chunksize=None, nrows=None):
     reader = generate_reader(f=countsfile, chunksize=chunksize, nrows=nrows)
     asv_sum = pd.DataFrame()
     for df in tqdm.tqdm(reader, unit="chunks"):
-        _asv_sum = pd.DataFrame(df.drop(blanks, axis=1).sum(numeric_only=True, axis=1), columns=["ASV_sum"])
+        _asv_sum = pd.DataFrame(df.drop(blanks, axis=1, errors="ignore").sum(numeric_only=True, axis=1), columns=["ASV_sum"])
         asv_sum = pd.concat([asv_sum, _asv_sum])
     return asv_sum.sort_values(by="ASV_sum", ascending=False)
 
