@@ -1,0 +1,5 @@
+.idea
+.ipynb_checkpoints
+build
+project-report_files
+*.swp
