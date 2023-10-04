@@ -3,3 +3,7 @@
 build
 project-report_files
 *.swp
+results
+data
+*.egg-info
+__pycache__
