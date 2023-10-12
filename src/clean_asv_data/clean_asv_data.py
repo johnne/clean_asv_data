@@ -176,6 +176,7 @@ def main(args):
         # Extract blanks from metadata
         if not args.noblanks:
             blanks = list(metadata.loc[metadata[args.sample_type_col].isin(args.blank_val)].index)
+            sys.stderr.write("####\n" f"Found {len(blanks)} blanks in metadata\n")
         else:
             blanks = []
     # Read counts (returns a dictionary)
