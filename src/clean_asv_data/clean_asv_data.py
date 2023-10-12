@@ -169,12 +169,15 @@ def main(args):
     sys.stderr.write("####\n" f"Reading clustfile {args.clustfile}\n")
     asv_taxa = read_clustfile(args.clustfile)
     sys.stderr.write("###\n" f"Found {asv_taxa.shape[0]} ASVs in {len(asv_taxa['cluster'].unique())} clusters\n")
-    # Read blanks
-    blanks = read_blanks(args.blanksfile)
     # Read metadata
     metadata = None
     if args.metadata:
         metadata = read_metadata(args.metadata, index_name=args.metadata_index_name)
+        # Extract blanks from metadata
+        if not args.no_blanks:
+            blanks = list(metadata.loc[metadata[args.sample_type_col].isin(args.blank_val)].index)
+        else:
+            blanks = []
     # Read counts (returns a dictionary)
     counts = read_counts(
         countsfile=args.countsfile,
@@ -234,14 +237,11 @@ def main_cli():
              "column with cluster designation.",
     )
     io_group.add_argument(
-        "--blanksfile", type=str, help="File with samples that are 'blanks'"
-    )
-    io_group.add_argument(
         "--metadata", type=str, help="Metadata file for splitting samples by datasets"
     )
     io_group.add_argument(
         "--metadata_index_name", type=str, help="Name of column in metadata file that contains sample ids",
-        default="sampleID_SEQ"
+        default="sampleID_NGI"
     )
     io_group.add_argument(
         "--split_col", type=str, help="Name of column in metadata file by which to split samples by prior to cleaning "
@@ -257,6 +257,24 @@ def main_cli():
         default="config.yml",
         help="Path to a yaml-format configuration file. Can be used to set arguments.",
     )
+    params_group.add_argument(
+        "--sample_type_col",
+        type=str,
+        default="lab_sample_type",
+        help="Use this column in metadata to identify sample type (default 'lab_sample_type')",
+    ),
+    params_group.add_argument(
+        "--blank_val",
+        type=str,
+        nargs="+",
+        default=['buffer_blank', 'extraction_neg', 'pcr_neg'],
+        help="Values in <sample_type_col> that identify blanks (default 'buffer_blank', 'extraction_neg', 'pcr_neg')",
+    ),
+    params_group.add_argument(
+        "--noblanks",
+        action="store_true",
+        help="Ignore blanks",
+    ),
     params_group.add_argument(
         "--clean_rank",
         type=str,
