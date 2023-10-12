@@ -174,7 +174,7 @@ def main(args):
     if args.metadata:
         metadata = read_metadata(args.metadata, index_name=args.metadata_index_name)
         # Extract blanks from metadata
-        if not args.no_blanks:
+        if not args.noblanks:
             blanks = list(metadata.loc[metadata[args.sample_type_col].isin(args.blank_val)].index)
         else:
             blanks = []
