@@ -48,6 +48,7 @@ def main(args):
     args = read_config(args.configfile, args)
     metadata = None
     subset = None
+    blanks = None
     if args.metadata:
         metadata = read_metadata(args.metadata, index_name=args.metadata_index_name)
         # Extract blanks from metadata
