@@ -8,7 +8,7 @@ import sys
 from clean_asv_data.__main__ import read_config, generate_reader, read_metadata
 
 
-def read_counts(countsfile, blanks=None, subset=None, chunksize=None, nrows=None):
+def read_counts(countsfile, asvs=None, blanks=None, subset=None, chunksize=None, nrows=None):
     """
     Read counts file in chunks and calculate ASV sum and ASV occurrence
     """
@@ -16,6 +16,8 @@ def read_counts(countsfile, blanks=None, subset=None, chunksize=None, nrows=None
         blanks = []
     if subset is None:
         subset = []
+    if asvs is None:
+        asvs = []
     reader = generate_reader(countsfile, chunksize, nrows)
     dataframe = pd.DataFrame()
     sys.stderr.write(f"Reading {countsfile} in chunks of {chunksize} lines\n")
@@ -31,6 +33,9 @@ def read_counts(countsfile, blanks=None, subset=None, chunksize=None, nrows=None
         asv_sum = pd.DataFrame(df.drop(blanks, axis=1, errors="ignore").sum(axis=1), columns=["reads"])
         _dataframe = pd.merge(asv_sum, asv_occ, left_index=True, right_index=True)
         dataframe = pd.concat([dataframe, _dataframe])
+    if len(asvs)>0:
+        asv_intersection = list(set(asvs).intersection(set(dataframe.index)))
+        dataframe = dataframe.loc[asvs, :]
     return dataframe
 
 
@@ -49,8 +54,13 @@ def main(args):
         if args.subset_val:
             subset = metadata.loc[metadata[args.subset_col] == args.subset_val].index
             sys.stderr.write("####\n" f"Found {len(subset)} samples for {args.subset_col}:{args.subset_val}\n")
+    asvs = None
+    if args.asvfile:
+        sys.stderr.write(f"Reading ASVs from {args.asvfile}\n")
+        asvs = pd.read_csv(args.asvfile, sep="\t", index_col=0).index
+        sys.stderr.write(f"Found {len(asvs)} ASVs\n")
     dataframe = read_counts(
-        args.countsfile, blanks, subset, chunksize=args.chunksize, nrows=args.nrows
+        args.countsfile, asvs, blanks, subset, chunksize=args.chunksize, nrows=args.nrows
     )
     sys.stderr.write(f"Writing stats for {dataframe.shape[0]} ASVs to stdout\n")
     dataframe.index.name = "ASV"
@@ -64,6 +74,11 @@ def main_cli():
         "--countsfile",
         type=str,
         help="ASV counts file. Tab-separated, samples in columns, ASVs in rows",
+    )
+    parser.add_argument(
+        "--asvfile",
+        type=str,
+        help="Tab-separated file with ASV ids in first column. If provided, only these ASVs will be included in the output"
     )
     parser.add_argument(
         "--configfile",
