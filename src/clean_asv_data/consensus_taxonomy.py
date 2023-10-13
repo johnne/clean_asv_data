@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import argparse
 from argparse import ArgumentParser
 import pandas as pd
@@ -180,7 +181,7 @@ def main_cli():
         "--clust_column",
         type=str,
         default="cluster",
-        help="Name of cluster column (default: 'cluster')"),
+        help="Name of cluster column (default: 'cluster')"
     )
     parser.add_argument(
         "--consensus_threshold",
