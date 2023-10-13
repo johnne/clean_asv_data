@@ -9,6 +9,7 @@ from clean_asv_data.__main__ import (
     read_metadata,)
 import tqdm
 import sys
+from collections import defaultdict
 
 
 def find_consensus_taxonomies(
@@ -23,6 +24,9 @@ def find_consensus_taxonomies(
         unit=" clusters",
     ):
         rows = clustdf.loc[clustdf[clust_column] == cluster]
+        lineage = {cluster: defaultdict(lambda: "unresolved")}
+        lineage[cluster].update({rank: "unresolved" for rank in ranks})
+        taxlabel = "unresolved"
         for rank in cons_ranks_reversed:
             # Sum ASV sums up to rank
             rank_sums = rows.groupby(rank).sum(numeric_only=True)
@@ -44,11 +48,16 @@ def find_consensus_taxonomies(
                     .head(1)
                     .to_dict(orient="index")
                 )
+                print(lineage)
                 break
         cluster_taxonomies[cluster] = list(lineage.values())[0]
         ranks_below = cons_ranks_reversed[0 : cons_ranks_reversed.index(rank)]
+        if taxlabel == "unresolved":
+            prefix = ""
+        else:
+            prefix = "unresolved."
         for r in ranks_below:
-            cluster_taxonomies[cluster][r] = f"unresolved.{taxlabel}"
+            cluster_taxonomies[cluster][r] = f"{prefix}{taxlabel}"
     return pd.DataFrame(cluster_taxonomies).T
 
 
@@ -83,7 +92,7 @@ def main(args):
     clustdf = pd.DataFrame()
     for f in args.clustfile:
         sys.stderr.write("####\n" f"Reading ASV clusters from {f}\n")
-        _clustdf = read_clustfile(args.clustfile, sep="\t")
+        _clustdf = read_clustfile(f, sep="\t")
         # extract ASVs not in clustdf
         if clustdf.shape[0] > 0:
             _clustdf = _clustdf.loc[~_clustdf.index.isin(clustdf.index), :]
@@ -116,6 +125,7 @@ def main(args):
         consensus_threshold=args.consensus_threshold,
     )
     resolved.index.name = "cluster"
+    resolved.sort_index(inplace=True)
     with sys.stdout as fhout:
         resolved.to_csv(fhout, sep="\t")
 
