@@ -9,7 +9,6 @@ from clean_asv_data.__main__ import (
     read_config,
     generate_reader,
     read_clustfile,
-    read_blanks,
     read_metadata,
 )
 
@@ -211,6 +210,7 @@ def main(args):
     )
     # Read metadata
     metadata = None
+    blanks = None
     if args.metadata:
         metadata = read_metadata(args.metadata, index_name=args.metadata_index_name)
         # Extract blanks from metadata
