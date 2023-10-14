@@ -34,10 +34,10 @@ def find_consensus_taxonomies(
             rank_sums_percent = rank_sums.div(rank_sums.sum()) * 100
             # Sort percent values in descending order
             rank_sums_percent.sort_values("ASV_sum", ascending=False, inplace=True)
-            # Create a list <above_thresh> of number of labels above threshold
+            # Create a list <above_thresh> of number of labels at or above threshold
             above_thresh = list(
                 rank_sums_percent.loc[
-                    rank_sums_percent["ASV_sum"] > consensus_threshold
+                    rank_sums_percent["ASV_sum"] >= consensus_threshold
                 ].index
             )
             # If only one assignment is above threshold, use this lineage to resolve taxonomy
@@ -48,7 +48,6 @@ def find_consensus_taxonomies(
                     .head(1)
                     .to_dict(orient="index")
                 )
-                print(lineage)
                 break
         cluster_taxonomies[cluster] = list(lineage.values())[0]
         ranks_below = cons_ranks_reversed[0 : cons_ranks_reversed.index(rank)]
