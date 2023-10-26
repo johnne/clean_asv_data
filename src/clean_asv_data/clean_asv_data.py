@@ -4,7 +4,12 @@ from argparse import ArgumentParser
 import pandas as pd
 import sys
 import tqdm
-from clean_asv_data.__main__ import read_config, generate_reader, read_clustfile, read_blanks
+from clean_asv_data.__main__ import (
+    read_config,
+    generate_reader,
+    read_clustfile,
+    read_blanks,
+)
 
 
 def read_counts(countsfile, blanks=None, chunksize=None, nrows=None):
@@ -41,7 +46,9 @@ def read_counts(countsfile, blanks=None, chunksize=None, nrows=None):
         asv_max = pd.DataFrame(df.drop(blanks, axis=1).max(axis=1), columns=["ASV_max"])
         _dataframe = pd.merge(asv_sum, asv_max, left_index=True, right_index=True)
         if len(blanks) > 0:
-            _dataframe = pd.merge(_dataframe, asv_blank_count, left_index=True, right_index=True)
+            _dataframe = pd.merge(
+                _dataframe, asv_blank_count, left_index=True, right_index=True
+            )
         dataframe = pd.concat([dataframe, _dataframe])
     sys.stderr.write(
         f"Read counts for {dataframe.shape[0]} ASVs in " f"{samples} samples\n"
@@ -122,7 +129,10 @@ def main(args):
     # Read taxonomy + clusters
     sys.stderr.write("####\n" f"Reading clustfile {args.clustfile}\n")
     asv_taxa = read_clustfile(args.clustfile)
-    sys.stderr.write("###\n" f"Found {asv_taxa.shape[0]} ASVs in {len(asv_taxa['cluster'].unique())} clusters\n")
+    sys.stderr.write(
+        "###\n"
+        f"Found {asv_taxa.shape[0]} ASVs in {len(asv_taxa['cluster'].unique())} clusters\n"
+    )
     # Read blanks
     blanks = read_blanks(args.blanksfile)
     # Read counts
@@ -158,7 +168,7 @@ def main(args):
             )
             asv_taxa_cleaned.to_csv(fhout, sep="\t")
     else:
-        with open(args.output, 'w') as fhout:
+        with open(args.output, "w") as fhout:
             sys.stderr.write(
                 "####\n" f"Writing {asv_taxa_cleaned.shape[0]} ASVs to {args.output}\n"
             )
