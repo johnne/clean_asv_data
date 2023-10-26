@@ -120,17 +120,36 @@ def read_counts(
     return data
 
 
-def clean_by_taxonomy(dataframe, rank="Family"):
+def clean_by_taxonomy(dataframe, skip_ambig=False, skip_unclass=False, rank="Family"):
     """
     Removes ASVs if they are 'unassigned' at <rank> or <rank> contains '_X'
     """
     df = dataframe.copy()
     before = df.shape[0]
     cl_before = len(df["cluster"].unique())
-    sys.stderr.write("####\n" f"Removing ASVs unclassified at {rank}\n")
-    cleaned = df.loc[
-        (~df[rank].str.contains("_X+$")) & (~df[rank].str.startswith("unclassified"))
-    ]
+    if skip_ambig and skip_unclass:
+        sys.stderr.write("####\n" "Skipping cleaning by taxonomy\n")
+        return df
+    if not skip_ambig:
+        sys.stderr.write("####\n" f"Removing ASVs ambiguous at {rank}\n")
+        cleaned = df.loc[~df[rank].str.contains("_X+$")]
+        n_ambig = before - cleaned.shape[0]
+        cl_ambig = cl_before - len(cleaned["cluster"].unique())
+        sys.stderr.write(f"{n_ambig} ASVs removed ({cl_ambig} clusters)\n")
+    else:
+        n_ambig = 0
+        cl_ambig = 0
+        cleaned = df.copy()
+    if not skip_unclass:
+        sys.stderr.write("####\n" f"Removing ASVs unclassified at {rank}\n")
+        cleaned = cleaned.loc[~cleaned[rank].str.startswith("unclassified")]
+        n_unclass = before - cleaned.shape[0] - n_ambig
+        cl_unclass = cl_before - len(cleaned["cluster"].unique()) - cl_ambig
+        sys.stderr.write(f"{n_unclass} ASVs removed ({cl_unclass} clusters)\n")
+    else:
+        n_unclass = 0
+        cl_unclass = 0
+    
     after = cleaned.shape[0]
     cl_after = len(cleaned["cluster"].unique())
     sys.stderr.write(
