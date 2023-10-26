@@ -149,7 +149,7 @@ def clean_by_taxonomy(dataframe, skip_ambig=False, skip_unclass=False, rank="Fam
     else:
         n_unclass = 0
         cl_unclass = 0
-    
+
     after = cleaned.shape[0]
     cl_after = len(cleaned["cluster"].unique())
     sys.stderr.write(
@@ -250,7 +250,7 @@ def main(args):
         nrows=args.nrows,
     )
     # Clean by taxonomy
-    asv_taxa_cleaned = clean_by_taxonomy(dataframe=asv_taxa, rank=args.clean_rank)
+    asv_taxa_cleaned = clean_by_taxonomy(dataframe=asv_taxa, skip_ambig=args.skip_ambig, skip_unclass=args.skip_unclass, rank=args.clean_rank)
     # Merge counts + taxonomy
     for dataset, dataframe in counts.items():
         sys.stderr.write("####\n" f"Cleaning {dataset}\n")
@@ -353,6 +353,15 @@ def main_cli():
         "--clean_rank",
         type=str,
         help="Remove ASVs unassigned at this taxonomic " "rank (default Family)",
+    )
+    params_group.add_argument(
+        "--skip_ambig",
+        action="store_true",
+        help="Skip cleaning of ASVs ambiguous at <clean_rank>. Ambiguous assignments end in '_X'")
+    params_group.add_argument(
+        "--skip_unclass",
+        action="store_true",
+        help="Skip cleaning of ASVs unclassified at <clean_rank>",
     )
     params_group.add_argument(
         "--max_blank_occurrence",
