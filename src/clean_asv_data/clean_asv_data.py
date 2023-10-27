@@ -32,7 +32,8 @@ def read_counts(
     sys.stderr.write("####\n" f"Reading counts from {countsfile}\n")
     data = {}
     warnings = []
-    n_asvs = n_datasets = n_samples = 0
+    n_asvs = n_samples = 0
+    n_datasets = []
     for i, df in enumerate(
         tqdm.tqdm(
             reader,
@@ -64,7 +65,7 @@ def read_counts(
                     "####\n" f"No samples found in counts data for {val}, skipping...\n"
                 )
                 continue
-            n_datasets += 1
+            n_datasets.append(val)
             # get samples in val_samples missing from df columns
             missing_samples = set(val_samples).difference(val_samples_intersect)
             if len(missing_samples) > 0 and i == 0:
@@ -113,7 +114,7 @@ def read_counts(
             data[val] = pd.concat([data[val], _dataframe])
     sys.stderr.write(
         f"Read counts for {n_asvs} ASVs in "
-        f"{n_samples} samples and {n_datasets} datasets\n"
+        f"{n_samples} samples and {len(set(n_datasets))} datasets\n"
     )
     for item in warnings:
         sys.stderr.write(item)
