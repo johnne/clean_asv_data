@@ -220,6 +220,8 @@ def main(args):
         output = "cleaned.tsv"
     else:
         outdir = os.path.dirname(args.output)
+        if outdir=="":
+            outdir = "."
         output = os.path.basename(args.output)
     # Read taxonomy + clusters
     sys.stderr.write("####\n" f"Reading clustfile {args.clustfile}\n")
