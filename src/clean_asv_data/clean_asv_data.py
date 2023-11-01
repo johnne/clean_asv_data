@@ -378,6 +378,7 @@ def main_cli():
         "--blank_removal_mode",
         type=str,
         choices=["cluster", "asv"],
+        default="asv",
         help="How to remove sequences based on "
         "occurrence in blanks. If 'asv' ("
         "default) remove "
