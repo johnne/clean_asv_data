@@ -10,6 +10,124 @@ class objectview(object):
         self.__dict__ = d
 
 
+def testdata():
+    """
+    Generates dataframe with 10 ASVs in 3 clusters:
+
+             cluster Phylum Class Order           Family            Genus Species
+    ASV_ID
+    ASV1    cluster1     PA    CA    OA               FA  unclassified.FA      SA
+    ASV2    cluster1     PA    CA    OA               FA               GA      SA
+    ASV3    cluster1     PA    CA    OA               FA               GA      SA
+    ASV4    cluster2     PB    CB    OB  unclassified.OA               GB      SB
+    ASV5    cluster2     PB    CB    OB             FB_X               GB      SB
+    ASV6    cluster2     PB    CB    OB             FB_X               GB      SB
+    ASV7    cluster3     PC    CC    OC            FC_XX               GC      SC
+    ASV8    cluster3     PC    CC    OC               FC               GC      SC
+    ASV9    cluster3     PC    CC    OC               FC               GC      SC
+    ASV10   cluster3     PC    CC    OC               FC               GC      SC
+
+    Cleaning the dataframe by taxonomy, removing ASVs unclassified and ambiguous
+    at Family would result in the following dataframe:
+
+             cluster Phylum Class Order           Family            Genus Species
+    ASV_ID
+    ASV1    cluster1     PA    CA    OA               FA  unclassified.FA      SA
+    ASV2    cluster1     PA    CA    OA               FA               GA      SA
+    ASV3    cluster1     PA    CA    OA               FA               GA      SA
+    ASV8    cluster3     PC    CC    OC               FC               GC      SC
+    ASV9    cluster3     PC    CC    OC               FC               GC      SC
+    ASV10   cluster3     PC    CC    OC               FC               GC      SC
+
+    Skipping cleaning of ambiguous ASVs at Family would result in the following
+    dataframe:
+             cluster Phylum Class Order           Family            Genus Species
+    ASV_ID
+    ASV1    cluster1     PA    CA    OA               FA  unclassified.FA      SA
+    ASV2    cluster1     PA    CA    OA               FA               GA      SA
+    ASV3    cluster1     PA    CA    OA               FA               GA      SA
+    ASV5    cluster2     PB    CB    OB             FB_X               GB      SB
+    ASV6    cluster2     PB    CB    OB             FB_X               GB      SB
+    ASV7    cluster3     PC    CC    OC            FC_XX               GC      SC
+    ASV8    cluster3     PC    CC    OC               FC               GC      SC
+    ASV9    cluster3     PC    CC    OC               FC               GC      SC
+    ASV10   cluster3     PC    CC    OC               FC               GC      SC
+
+    Skipping cleaning of unclassified ASVs at Family would result in the
+    following:
+             cluster Phylum Class Order           Family            Genus Species
+    ASV_ID
+    ASV1    cluster1     PA    CA    OA               FA  unclassified.FA      SA
+    ASV2    cluster1     PA    CA    OA               FA               GA      SA
+    ASV3    cluster1     PA    CA    OA               FA               GA      SA
+    ASV4    cluster2     PB    CB    OB  unclassified.OA               GB      SB
+    ASV8    cluster3     PC    CC    OC               FC               GC      SC
+    ASV9    cluster3     PC    CC    OC               FC               GC      SC
+    ASV10   cluster3     PC    CC    OC               FC               GC      SC
+
+
+    :return: dataframe with cluster membership and taxonomic assignments
+    """
+    df = pd.DataFrame(
+        data={
+            "cluster": [
+                "cluster1",
+                "cluster1",
+                "cluster1",
+                "cluster2",
+                "cluster2",
+                "cluster2",
+                "cluster3",
+                "cluster3",
+                "cluster3",
+                "cluster3",
+            ],
+            "Phylum": ["PA", "PA", "PA", "PB", "PB", "PB", "PC", "PC", "PC", "PC"],
+            "Class": ["CA", "CA", "CA", "CB", "CB", "CB", "CC", "CC", "CC", "CC"],
+            "Order": ["OA", "OA", "OA", "OB", "OB", "OB", "OC", "OC", "OC", "OC"],
+            "Family": [
+                "FA",
+                "FA",
+                "FA",
+                "unclassified.OA",
+                "FB_X",
+                "FB_X",
+                "FC_XX",
+                "FC",
+                "FC",
+                "FC",
+            ],
+            "Genus": [
+                "unclassified.FA",
+                "GA",
+                "GA",
+                "GB",
+                "GB",
+                "GB",
+                "GC",
+                "GC",
+                "GC",
+                "GC",
+            ],
+            "Species": ["SA", "SA", "SA", "SB", "SB", "SB", "SC", "SC", "SC", "SC"],
+        },
+        index=[
+            "ASV1",
+            "ASV2",
+            "ASV3",
+            "ASV4",
+            "ASV5",
+            "ASV6",
+            "ASV7",
+            "ASV8",
+            "ASV9",
+            "ASV10",
+        ],
+    )
+    df.index.name = "ASV_ID"
+    return df.set
+
+
 def update_args(args, config):
     """
     Overrides arguments set in configfile with arguments from commandline
@@ -68,6 +186,12 @@ def read_blanks(f=None):
         blanks = [x.rstrip() for x in fhin.readlines()]
     sys.stderr.write(f"{len(blanks)} blanks read\n")
     return blanks
+
+
+def read_metadata(f, index_name="sampleID_SEQ"):
+    sys.stderr.write("####\n" f"Reading metadata from {f}\n")
+    df = pd.read_csv(f, sep="\t", header=0, comment="#")
+    return df.set_index(index_name)
 
 
 def read_clustfile(f, sep="\t"):

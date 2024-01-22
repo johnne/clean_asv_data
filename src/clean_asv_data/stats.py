@@ -5,33 +5,78 @@ import pandas as pd
 import tqdm
 from argparse import ArgumentParser
 import sys
-from clean_asv_data.__main__ import read_config, generate_reader, read_blanks
+from clean_asv_data.__main__ import read_config, generate_reader, read_metadata
 
 
-def read_counts(countsfile, blanks=None, chunksize=None, nrows=None):
+def read_counts(
+    countsfile, asvs=None, blanks=None, subset=None, chunksize=None, nrows=None
+):
     """
     Read counts file in chunks and calculate ASV sum and ASV occurrence
     """
     if blanks is None:
         blanks = []
+    if subset is None:
+        subset = []
+    if asvs is None:
+        asvs = []
     reader = generate_reader(countsfile, chunksize, nrows)
     dataframe = pd.DataFrame()
     sys.stderr.write(f"Reading {countsfile} in chunks of {chunksize} lines\n")
     for df in tqdm.tqdm(reader, unit=" chunks"):
+        if len(subset) > 0:
+            subset_intersection = list(set(subset).intersection(set(df.columns)))
+            df = df.loc[:, subset_intersection]
+        # Count number of samples where each ASV occurs
         asv_occ = pd.DataFrame(
-            df.drop(blanks, axis=1).gt(0).sum(axis=1), columns=["occurrence"]
+            df.drop(blanks, axis=1, errors="ignore").gt(0).sum(axis=1),
+            columns=["occurrence"],
         )
-        asv_sum = pd.DataFrame(df.drop(blanks, axis=1).sum(axis=1), columns=["reads"])
+        # Sum counts for each ASV
+        asv_sum = pd.DataFrame(
+            df.drop(blanks, axis=1, errors="ignore").sum(axis=1), columns=["reads"]
+        )
         _dataframe = pd.merge(asv_sum, asv_occ, left_index=True, right_index=True)
         dataframe = pd.concat([dataframe, _dataframe])
+    if len(asvs) > 0:
+        asv_intersection = list(set(asvs).intersection(set(dataframe.index)))
+        dataframe = dataframe.loc[asvs, :]
     return dataframe
 
 
 def main(args):
     args = read_config(args.configfile, args)
-    blanks = read_blanks(f=args.blanksfile)
+    metadata = None
+    subset = None
+    blanks = None
+    if args.metadata:
+        metadata = read_metadata(args.metadata, index_name=args.metadata_index_name)
+        # Extract blanks from metadata
+        if not args.noblanks:
+            blanks = list(
+                metadata.loc[metadata[args.sample_type_col].isin(args.blank_val)].index
+            )
+            sys.stderr.write("####\n" f"Found {len(blanks)} blanks in metadata\n")
+        else:
+            blanks = []
+        if args.subset_val:
+            subset = metadata.loc[metadata[args.subset_col] == args.subset_val].index
+            sys.stderr.write(
+                "####\n"
+                f"Found {len(subset)} samples for {args.subset_col}:{args.subset_val}\n"
+            )
+    asvs = None
+    if args.asvfile:
+        sys.stderr.write(f"Reading ASVs from {args.asvfile}\n")
+        asvs = pd.read_csv(args.asvfile, sep="\t", index_col=0).index
+        sys.stderr.write(f"Found {len(asvs)} ASVs\n")
     dataframe = read_counts(
-        args.countsfile, blanks, chunksize=args.chunksize, nrows=args.nrows
+        args.countsfile,
+        asvs,
+        blanks,
+        subset,
+        chunksize=args.chunksize,
+        nrows=args.nrows,
     )
     sys.stderr.write(f"Writing stats for {dataframe.shape[0]} ASVs to stdout\n")
     dataframe.index.name = "ASV"
@@ -47,16 +92,54 @@ def main_cli():
         help="ASV counts file. Tab-separated, samples in columns, ASVs in rows",
     )
     parser.add_argument(
+        "--asvfile",
+        type=str,
+        help="Tab-separated file with ASV ids in first column. If provided, only these ASVs will be included in the output",
+    )
+    parser.add_argument(
         "--configfile",
         type=str,
         default="config.yml",
         help="Path to a yaml-format configuration file. Can be used to set arguments.",
     )
     parser.add_argument(
-        "--blanksfile",
-        type=str,
-        help="File with samples that are 'blanks'. If given, banks will be removed before calculating sum and occurrence",
+        "--metadata", type=str, help="Tab-separated file with metadata for each sample"
     )
+    parser.add_argument(
+        "--metadata_index_name",
+        type=str,
+        help="Name of column in metadata file that contains sample ids (default: 'sampleID_NGI'))",
+        default="sampleID_NGI",
+    )
+    parser.add_argument(
+        "--sample_type_col",
+        type=str,
+        default="lab_sample_type",
+        help="Use this column in metadata to identify sample type (default 'lab_sample_type')",
+    ),
+    parser.add_argument(
+        "--blank_val",
+        type=str,
+        nargs="+",
+        default=["buffer_blank", "extraction_neg", "pcr_neg"],
+        help="Values in <sample_type_col> that identify blanks (default 'buffer_blank', 'extraction_neg', 'pcr_neg')",
+    ),
+    parser.add_argument(
+        "--noblanks",
+        action="store_true",
+        help="Ignore blanks",
+    ),
+    parser.add_argument(
+        "--subset_col",
+        type=str,
+        default="dataset",
+        help="Column in metadata to use for subsetting the counts on (default: 'dataset')",
+    )
+    parser.add_argument(
+        "--subset_val",
+        type=str,
+        help="Value in subset_col to use for subsetting the counts on",
+    ),
     parser.add_argument(
         "--chunksize",
         type=int,
